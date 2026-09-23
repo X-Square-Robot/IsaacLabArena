@@ -1,7 +1,7 @@
 [submodule "submodules/IsaacLab"]
 	path = submodules/IsaacLab
-	url = ssh://git@gitlab.zbl.local:50022/mana/engine/isaaclab.git
-	branch = publication
+	url = https://github.com/X-Square-Robot/IsaacLab.git
+	branch = x2real
 	ignore = all
 [submodule "submodules/Isaac-GR00T"]
 	path = submodules/Isaac-GR00T
