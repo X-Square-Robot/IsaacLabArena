@@ -53,7 +53,7 @@ body states, object point cloud, and 5-step observation history.
    * - **Objects**
      - Procedural lift cuboid (``procedural_cube``)
    * - **Policy**
-     - RSL-RL PPO (``DexsuiteKukaAllegroPPORunnerCfg``)
+     - RSL-RL PPO (``KukaAllegroPPORunnerCfg``)
    * - **Training Method**
      - Reinforcement Learning (on-policy PPO) — trained in **Isaac Lab**
    * - **Physics Backend**

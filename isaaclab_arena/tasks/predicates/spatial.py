@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import torch
 
-import warp as wp
 from isaaclab.assets import RigidObject
 from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab.managers import SceneEntityCfg
@@ -81,8 +80,8 @@ def objects_in_proximity(
     target_object: RigidObject = env.scene[target_object_cfg.name]
 
     # Get positions relative to environment origin
-    object_pos = wp.to_torch(object.data.root_pos_w) - env.scene.env_origins
-    target_object_pos = wp.to_torch(target_object.data.root_pos_w) - env.scene.env_origins
+    object_pos = (object.data.root_pos_w).torch - env.scene.env_origins
+    target_object_pos = (target_object.data.root_pos_w).torch - env.scene.env_origins
 
     # object to target object
     x_separation = torch.abs(object_pos[:, 0] - target_object_pos[:, 0])
@@ -120,10 +119,10 @@ def object_on_destination(
     assert sensor.data.force_matrix_w.shape[1] == 1
     # NOTE(alexmillane, 2025-08-04): We expect the binary flags to have shape (N, )
     # where N is the number of envs.
-    force_matrix_norm = torch.norm(wp.to_torch(sensor.data.force_matrix_w), dim=-1).reshape(-1)
+    force_matrix_norm = torch.norm((sensor.data.force_matrix_w).torch, dim=-1).reshape(-1)
     force_above_threshold = force_matrix_norm > force_threshold
 
-    velocity_w = wp.to_torch(object.data.root_lin_vel_w)
+    velocity_w = (object.data.root_lin_vel_w).torch
     velocity_w_norm = torch.norm(velocity_w, dim=-1)
     velocity_below_threshold = velocity_w_norm < velocity_threshold
 

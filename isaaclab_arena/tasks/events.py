@@ -1,8 +1,7 @@
-# Copyright (c) 2025-2026, The Isaac Lab Arena Project Developers (https://github.com/isaac-sim/IsaacLab-Arena/blob/main/CONTRIBUTORS.md).
+# Copyright (c) 2026, The Isaac Lab Arena Project Developers (https://github.com/isaac-sim/IsaacLab-Arena/blob/main/CONTRIBUTORS.md).
 # All rights reserved.
 #
 # SPDX-License-Identifier: Apache-2.0
-
 
 from __future__ import annotations
 
@@ -11,7 +10,7 @@ from typing import TYPE_CHECKING, Literal
 
 import isaaclab.utils.math as math_utils
 from isaaclab.managers import SceneEntityCfg
-from isaaclab_tasks.manager_based.manipulation.stack.mdp.franka_stack_events import sample_object_poses
+from isaaclab_tasks.contrib.stack.mdp.franka_stack_events import sample_object_poses
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv
@@ -59,11 +58,12 @@ def randomize_poses_and_align_auxiliary_assets(
             positions = pose_tensor[:, 0:3] + env.scene.env_origins[cur_env, 0:3]
             orientations = math_utils.quat_from_euler_xyz(pose_tensor[:, 3], pose_tensor[:, 4], pose_tensor[:, 5])
 
-            asset.write_root_pose_to_sim(
-                torch.cat([positions, orientations], dim=-1), env_ids=torch.tensor([cur_env], device=env.device)
+            asset.write_root_pose_to_sim_index(
+                root_pose=torch.cat([positions, orientations], dim=-1),
+                env_ids=torch.tensor([cur_env], device=env.device),
             )
-            asset.write_root_velocity_to_sim(
-                torch.zeros(1, 6, device=env.device), env_ids=torch.tensor([cur_env], device=env.device)
+            asset.write_root_velocity_to_sim_index(
+                root_velocity=torch.zeros(1, 6, device=env.device), env_ids=torch.tensor([cur_env], device=env.device)
             )
 
             if (
@@ -79,9 +79,11 @@ def randomize_poses_and_align_auxiliary_assets(
                 for j in range(len(auxiliary_asset_cfgs)):
                     rel_asset_cfg = auxiliary_asset_cfgs[j]
                     rel_asset = env.scene[rel_asset_cfg.name]
-                    rel_asset.write_root_pose_to_sim(
-                        torch.cat([positions, orientations], dim=-1), env_ids=torch.tensor([cur_env], device=env.device)
+                    rel_asset.write_root_pose_to_sim_index(
+                        root_pose=torch.cat([positions, orientations], dim=-1),
+                        env_ids=torch.tensor([cur_env], device=env.device),
                     )
-                    rel_asset.write_root_velocity_to_sim(
-                        torch.zeros(1, 6, device=env.device), env_ids=torch.tensor([cur_env], device=env.device)
+                    rel_asset.write_root_velocity_to_sim_index(
+                        root_velocity=torch.zeros(1, 6, device=env.device),
+                        env_ids=torch.tensor([cur_env], device=env.device),
                     )

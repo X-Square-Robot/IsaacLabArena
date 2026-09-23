@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+MSG_FILE="${1:-}"
+if [[ -z "$MSG_FILE" || ! -f "$MSG_FILE" ]]; then
+    echo "[ERROR] commit-msg hook: missing commit message file" >&2
+    exit 1
+fi
+
+if grep -Eq '^(Made-with:|Co-authored-by:|Signed-off-by:)' "$MSG_FILE"; then
+    tmp_file="$(mktemp)"
+    trap 'rm -f "$tmp_file"' EXIT
+    grep -Ev '^(Made-with:|Co-authored-by:|Signed-off-by:)' "$MSG_FILE" > "$tmp_file" || true
+    sed -i '/^[[:space:]]*$/d' "$tmp_file"
+    mv "$tmp_file" "$MSG_FILE"
+    trap - EXIT
+fi
+
+line_count="$(grep -c '^' "$MSG_FILE" || true)"
+if [[ "$line_count" -ne 1 ]]; then
+    echo "[ERROR] commit message must be single-line only." >&2
+    echo "        Expected format: Resolve {module}: xxx  OR  Fix {module}: xxx" >&2
+    exit 1
+fi
+
+subject="$(sed -n '1p' "$MSG_FILE")"
+if [[ ! "$subject" =~ ^(Resolve|Fix)\ [A-Za-z0-9._/-]+:\ .+ ]]; then
+    echo "[ERROR] invalid commit subject format." >&2
+    echo "        Expected: Resolve {module}: xxx" >&2
+    echo "        Or:       Fix {module}: xxx" >&2
+    exit 1
+fi
+
+exit 0

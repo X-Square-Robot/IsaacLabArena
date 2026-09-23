@@ -35,7 +35,7 @@ class GalileoPickAndPlaceEnvironment(ArenaEnvironmentFactory[GalileoPickAndPlace
         from isaaclab_arena.assets.object_reference import ObjectReference
         from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
         from isaaclab_arena.scene.scene import Scene
-        from isaaclab_arena.tasks.pick_and_place_task import PickAndPlaceTask
+        from isaaclab_arena.tasks.pick_and_place_task import PickAndPlaceTask, PickAndPlaceTaskCFG
         from isaaclab_arena.utils.pose import Pose
 
         background = self.asset_registry.get_asset_by_name("galileo")()
@@ -68,11 +68,19 @@ class GalileoPickAndPlaceEnvironment(ArenaEnvironmentFactory[GalileoPickAndPlace
         )
 
         scene = Scene(assets=[background, pick_up_object, destination_location])
+        task = PickAndPlaceTask(
+            PickAndPlaceTaskCFG(
+                pick_up_object=pick_up_object,
+                destination_location=destination_location,
+                background_scene=background,
+            )
+        )
+
         isaaclab_arena_environment = IsaacLabArenaEnvironment(
             name=self.name,
             embodiment=embodiment,
             scene=scene,
-            task=PickAndPlaceTask(pick_up_object, destination_location, background),
+            task=task,
             teleop_device=teleop_device,
         )
         return isaaclab_arena_environment

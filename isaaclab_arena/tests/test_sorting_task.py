@@ -161,11 +161,15 @@ def _test_sorting_task_success(simulation_app) -> bool:
             green_cube_target_pos[0, 2] += 0.1  # Above container to fall into it
 
             # Write initial pose only once
-            red_cube_object.write_root_pose_to_sim(root_pose=torch.cat([red_cube_target_pos, target_quat], dim=-1))
-            red_cube_object.write_root_velocity_to_sim(root_velocity=torch.zeros((1, 6), device=env.device))
+            red_cube_object.write_root_pose_to_sim_index(
+                root_pose=torch.cat([red_cube_target_pos, target_quat], dim=-1)
+            )
+            red_cube_object.write_root_velocity_to_sim_index(root_velocity=torch.zeros((1, 6), device=env.device))
 
-            green_cube_object.write_root_pose_to_sim(root_pose=torch.cat([green_cube_target_pos, target_quat], dim=-1))
-            green_cube_object.write_root_velocity_to_sim(root_velocity=torch.zeros((1, 6), device=env.device))
+            green_cube_object.write_root_pose_to_sim_index(
+                root_pose=torch.cat([green_cube_target_pos, target_quat], dim=-1)
+            )
+            green_cube_object.write_root_velocity_to_sim_index(root_velocity=torch.zeros((1, 6), device=env.device))
 
             # Step the environment to let physics simulate the fall and contact
             for _ in range(NUM_STEPS * 10):
@@ -216,8 +220,10 @@ def _test_sorting_task_partial_success(simulation_app) -> bool:
             red_cube_target_pos = red_container_pos.clone().unsqueeze(0)
             red_cube_target_pos[0, 2] += 0.1  # Above container to fall into it
 
-            red_cube_object.write_root_pose_to_sim(root_pose=torch.cat([red_cube_target_pos, target_quat], dim=-1))
-            red_cube_object.write_root_velocity_to_sim(root_velocity=torch.zeros((1, 6), device=env.device))
+            red_cube_object.write_root_pose_to_sim_index(
+                root_pose=torch.cat([red_cube_target_pos, target_quat], dim=-1)
+            )
+            red_cube_object.write_root_velocity_to_sim_index(root_velocity=torch.zeros((1, 6), device=env.device))
 
             # Step the environment to let physics simulate
             # Green cube stays at its initial position (not in container)
@@ -294,9 +300,10 @@ def _test_sorting_task_multiple_envs(simulation_app) -> bool:
             green_cube_state[1, 7:] = 0
 
             # Write state ONCE and let physics simulate
-            red_cube_object.write_root_state_to_sim(red_cube_state)
-            green_cube_object.write_root_state_to_sim(green_cube_state)
-
+            red_cube_object.write_root_link_pose_to_sim_index(root_pose=red_cube_state[:, :7])
+            red_cube_object.write_root_com_velocity_to_sim_index(root_velocity=red_cube_state[:, 7:])
+            green_cube_object.write_root_link_pose_to_sim_index(root_pose=green_cube_state[:, :7])
+            green_cube_object.write_root_com_velocity_to_sim_index(root_velocity=green_cube_state[:, 7:])
             # Track if each env ever succeeded
             ever_succeeded = torch.zeros(2, dtype=torch.bool, device=env.device)
             for _ in range(NUM_STEPS * 10):

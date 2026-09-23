@@ -1,4 +1,4 @@
-# Copyright (c) 2025-2026, The Isaac Lab Arena Project Developers (https://github.com/isaac-sim/IsaacLab-Arena/blob/main/CONTRIBUTORS.md).
+# Copyright (c) 2026, The Isaac Lab Arena Project Developers (https://github.com/isaac-sim/IsaacLab-Arena/blob/main/CONTRIBUTORS.md).
 # All rights reserved.
 #
 # SPDX-License-Identifier: Apache-2.0
@@ -14,23 +14,21 @@ from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import RewardTermCfg, SceneEntityCfg, TerminationTermCfg
 from isaaclab.utils.configclass import configclass
-from isaaclab_tasks.manager_based.manipulation.dexsuite import dexsuite_env_cfg as dexsuite
+from isaaclab_tasks.core.lift import lift_env_cfg as lift
 
 from isaaclab_arena.assets.asset import Asset
-from isaaclab_arena.assets.register import register_task
 from isaaclab_arena.embodiments.embodiment_base import EmbodimentBase
 from isaaclab_arena.metrics.metric_base import MetricBase
 from isaaclab_arena.metrics.success_rate import SuccessRateMetric
 from isaaclab_arena.tasks.observations import observations
 from isaaclab_arena.tasks.rewards import lift_object_rewards, rewards
-from isaaclab_arena.tasks.task_base import TaskBase
+from isaaclab_arena.tasks.task_base import ManaTask
 from isaaclab_arena.tasks.terminations import lift_object_il_success, lift_object_rl_success
 from isaaclab_arena.utils.cameras import get_viewer_cfg_look_at_object
 from isaaclab_arena.utils.pose import PoseRange
 
 
-@register_task
-class LiftObjectTask(TaskBase):
+class LiftObjectTask(ManaTask):
     def __init__(
         self,
         lift_object: Asset,
@@ -132,7 +130,6 @@ class LiftObjectTerminationsCfg:
     success: TerminationTermCfg = MISSING
 
 
-@register_task
 class LiftObjectTaskRL(LiftObjectTask):
     def __init__(
         self,
@@ -364,11 +361,11 @@ class LiftObjectRewardCfg:
 
 
 @configclass
-class DexsuiteLiftTerminationsCfg(dexsuite.TerminationsCfg):
+class DexsuiteLiftTerminationsCfg(lift.TerminationsCfg):
     """Dexsuite base terminations + position-based ``success``.
 
     Inherits ``time_out``, ``object_out_of_bound``, and ``abnormal_robot`` from
-    :class:`isaaclab_tasks.manager_based.manipulation.dexsuite.dexsuite_env_cfg.TerminationsCfg`.
+    :class:`isaaclab_tasks.core.lift.lift_env_cfg.TerminationsCfg`.
     """
 
     success: TerminationTermCfg = TerminationTermCfg(
@@ -380,7 +377,6 @@ class DexsuiteLiftTerminationsCfg(dexsuite.TerminationsCfg):
     )
 
 
-@register_task
 class DexsuiteLiftTask(LiftObjectTask):
     """Dexsuite lift task for Arena evaluation.
 
@@ -397,7 +393,7 @@ class DexsuiteLiftTask(LiftObjectTask):
         )
         self.task_description = "Dexsuite lift (Arena, Newton-ready scene)."
 
-        self.commands_cfg = dexsuite.CommandsCfg()
+        self.commands_cfg = lift.CommandsCfg()
         self.commands_cfg.object_pose.position_only = True
         self.commands_cfg.object_pose.resampling_time_range = (2.0, 3.0)
         self.termination_cfg = DexsuiteLiftTerminationsCfg()

@@ -1,4 +1,4 @@
-# Copyright (c) 2025-2026, The Isaac Lab Arena Project Developers (https://github.com/isaac-sim/IsaacLab-Arena/blob/main/CONTRIBUTORS.md).
+# Copyright (c) 2026, The Isaac Lab Arena Project Developers (https://github.com/isaac-sim/IsaacLab-Arena/blob/main/CONTRIBUTORS.md).
 # All rights reserved.
 #
 # SPDX-License-Identifier: Apache-2.0
@@ -11,18 +11,14 @@ from isaaclab.managers import EventTermCfg
 from isaaclab.utils.configclass import configclass
 
 from isaaclab_arena.affordances.openable import Openable
-from isaaclab_arena.assets.register import register_task
-from isaaclab_arena.embodiments.common.arm_mode import ArmMode
 from isaaclab_arena.metrics.metric_base import MetricBase
 from isaaclab_arena.metrics.revolute_joint_moved_rate import RevoluteJointMovedRateMetric
 from isaaclab_arena.metrics.success_rate import SuccessRateMetric
-from isaaclab_arena.tasks.task_base import TaskBase
-from isaaclab_arena.tasks.task_transition import TaskTransition
+from isaaclab_arena.tasks.task_base import ManaTask
 from isaaclab_arena.utils.cameras import get_viewer_cfg_look_at_object
 
 
-@register_task
-class RotateRevoluteJointTask(TaskBase):
+class RotateRevoluteJointTask(ManaTask):
     def __init__(
         self,
         openable_object: Openable,
@@ -42,7 +38,8 @@ class RotateRevoluteJointTask(TaskBase):
             else task_description
         )
         self.events_cfg = RotateRevoluteJointEventCfg(
-            self.openable_object, reset_openable_object_revolute_joint_percentage=self.reset_joint_percentage
+            self.openable_object,
+            reset_openable_object_revolute_joint_percentage=self.reset_joint_percentage,
         )
         self.scene_config = None
         self.termination_cfg = None
@@ -54,11 +51,11 @@ class RotateRevoluteJointTask(TaskBase):
     def get_events_cfg(self):
         return self.events_cfg
 
-    def get_mimic_env_cfg(self, arm_mode: ArmMode):
-        raise NotImplementedError("Function {self.get_mimic_env_cfg.__name__} not implemented yet.")
+    def get_mimic_env_cfg(self, embodiment_name: str):
+        raise NotImplementedError("Function get_mimic_env_cfg not implemented yet.")
 
     def get_termination_cfg(self):
-        raise NotImplementedError("Function {self.get_termination_cfg.__name__} not implemented yet.")
+        raise NotImplementedError("Function get_termination_cfg not implemented yet.")
 
     def get_metrics(self) -> list[MetricBase]:
         return [
@@ -72,19 +69,10 @@ class RotateRevoluteJointTask(TaskBase):
     def get_viewer_cfg(self) -> ViewerCfg:
         return get_viewer_cfg_look_at_object(lookat_object=self.openable_object, offset=np.array([-1.3, -1.3, 1.3]))
 
-    @classmethod
-    def success_state_transition(cls, openable_object: str, **_) -> TaskTransition:
-        """Success is the openable object's joint state change.
-        The env-graph spec has not yet defined joint openness, so no effects are
-        emitted today — only the subject node (the openable object) is recorded.
-        # TODO(xinjieyao, 2026.06.02): allow env graph spec to define node state change
-        """
-        return TaskTransition(subject=openable_object)
-
 
 @configclass
 class RotateRevoluteJointEventCfg:
-    """Configuration for Open Door."""
+    """Configuration for revolute-joint reset."""
 
     reset_openable_object_revolute_joint_percentage: EventTermCfg = MISSING
 

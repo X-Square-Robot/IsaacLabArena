@@ -44,7 +44,7 @@ from isaaclab_arena.relations.relation_solver_params import RelationSolverParams
 from isaaclab_arena.tasks.no_task import NoTask
 from isaaclab_arena.utils.configclass import combine_configclass_instances, make_configclass
 from isaaclab_arena.utils.isaaclab_utils.recorders import ArenaEnvRecorderManagerCfg
-from isaaclab_arena.utils.isaaclab_utils.simulation_app import reapply_viewer_cfg
+from isaaclab_arena.utils.isaaclab_utils.simulation_app import reapply_visualizer_cfg
 from isaaclab_arena.utils.multiprocess import get_local_rank
 from isaaclab_arena.variations import variations_hydra, variations_printing
 from isaaclab_arena.variations.variation_base import RunTimeVariationBase, VariationBase
@@ -67,6 +67,18 @@ class ArenaEnvBuilder:
             num_envs=cfg.num_envs, env_spacing=cfg.env_spacing, replicate_physics=False
         )
         self._placement_event_cfg: EventTermCfg | None = None
+
+    @staticmethod
+    def _resolve_task_visualizer_cfg(task: Any) -> Any | None:
+        """Return a materialized native visualizer cfg when the task exposes one."""
+        getter = getattr(task, "get_default_visualizer_cfg", None)
+        if callable(getter):
+            visualizer_cfg = getter()
+            if visualizer_cfg is not None and not isinstance(visualizer_cfg, dict):
+                return visualizer_cfg
+        runtime_cfgs = getattr(task, "runtime_cfgs", None)
+        visualizer_cfg = runtime_cfgs.get("default_visualizer_cfg") if isinstance(runtime_cfgs, dict) else None
+        return None if isinstance(visualizer_cfg, dict) else visualizer_cfg
 
     def _solve_relations(self) -> None:
         """Solve spatial relations for scene objects and the embodiment.
@@ -324,7 +336,7 @@ class ArenaEnvBuilder:
 
         episode_recorders_cfg = self._compose_episode_recorders_cfg(self.arena_env.episode_recorder_terms)
 
-        viewer_cfg = task.get_viewer_cfg()
+        self._resolved_task_visualizer_cfg = self._resolve_task_visualizer_cfg(task)
 
         episode_length_s = task.get_episode_length_s()
 
@@ -351,7 +363,7 @@ class ArenaEnvBuilder:
                 metrics=metrics_cfg,
                 episode_recorders=episode_recorders_cfg,
                 task_description=task_description,
-                viewer=viewer_cfg,
+                viewer=None,
             )
             # Tasks always resolve to a concrete episode length.
             env_cfg.episode_length_s = episode_length_s
@@ -385,7 +397,7 @@ class ArenaEnvBuilder:
                 # recorders=recorder_manager_cfg,
                 # metrics=metrics_cfg,
                 task_description=task_description,
-                viewer=viewer_cfg,
+                viewer=None,
             )
 
         # Apply the environment configuration callback if it is set
@@ -512,7 +524,6 @@ class ArenaEnvBuilder:
         """
         name, cfg, env_kwargs = self.build_registered(env_cfg, env_kwargs)
         env = gym.make(name, cfg=cfg, render_mode=render_mode, **env_kwargs)
-        # ViewportCameraController sets the camera before KitVisualizer.initialize() is called,
-        # so the call is silently ignored. Re-apply here once the visualizers are fully initialized.
-        reapply_viewer_cfg(env)
+        # Native visualizers are initialized by gym.make(); apply their camera origin now.
+        reapply_visualizer_cfg(env)
         return env, cfg

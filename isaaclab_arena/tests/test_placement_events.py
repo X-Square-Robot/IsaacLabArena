@@ -157,6 +157,7 @@ def _solve_and_place_with_pool(env, env_ids, pool):
 
 
 def test_solve_and_place_objects_writes_poses_to_sim():
+    """solve_and_place_objects should call write_root_pose_to_sim_index for non-anchor objects."""
     from isaaclab_arena.relations.object_placer_params import ObjectPlacerParams
     from isaaclab_arena.relations.pooled_object_placer import PooledObjectPlacer
     from isaaclab_arena.relations.relation_solver_params import RelationSolverParams
@@ -179,9 +180,10 @@ def test_solve_and_place_objects_writes_poses_to_sim():
     # Non-anchor objects should each get a pose and zero velocity write.
     for name in ("box1", "box2"):
         asset = env._assets[name]
-        asset.write_root_pose_to_sim.assert_called_once()
-        asset.write_root_velocity_to_sim.assert_called_once()
-        pose_arg = asset.write_root_pose_to_sim.call_args[0][0]
+        asset.write_root_pose_to_sim_index.assert_called_once()
+        asset.write_root_velocity_to_sim_index.assert_called_once()
+
+        pose_arg = asset.write_root_pose_to_sim_index.call_args.kwargs["root_pose"]
         assert pose_arg.shape == (1, 7), f"Expected (1,7) pose tensor for {name}, got {pose_arg.shape}"
 
 
@@ -222,7 +224,7 @@ def test_solve_and_place_objects_uses_runtime_pool():
 
     assert "desk" not in env._assets
     assert "droid" not in env._assets
-    env._assets["robot"].write_root_pose_to_sim.assert_called_once()
+    env._assets["robot"].write_root_pose_to_sim_index.assert_called_once()
 
 
 def _identity_pose(position_xyz):
@@ -330,7 +332,7 @@ def test_solve_and_place_objects_applies_random_yaw():
 
     yawed = False
     for name in ("box1", "box2"):
-        pose_arg = env._assets[name].write_root_pose_to_sim.call_args[0][0]
+        pose_arg = env._assets[name].write_root_pose_to_sim_index.call_args.kwargs["root_pose"]
         # Pose tensor layout is (x, y, z, qx, qy, qz, qw); pure-Z yaw shows up as non-zero qz.
         assert abs(pose_arg[0, 3].item()) < 1e-6, f"{name} should have no roll component"
         assert abs(pose_arg[0, 4].item()) < 1e-6, f"{name} should have no pitch component"
@@ -395,9 +397,9 @@ def test_solve_and_place_objects_handles_multiple_env_ids():
 
     for name in ("box1", "box2"):
         asset = env._assets[name]
-        assert asset.write_root_pose_to_sim.call_count == 2, (
-            f"Expected 2 write_root_pose_to_sim calls for {name} (one per reset env), "
-            f"got {asset.write_root_pose_to_sim.call_count}"
+        assert asset.write_root_pose_to_sim_index.call_count == 2, (
+            f"Expected 2 write_root_pose_to_sim_index calls for {name} (one per reset env), "
+            f"got {asset.write_root_pose_to_sim_index.call_count}"
         )
 
 
@@ -452,8 +454,8 @@ def test_solve_and_place_objects_writes_invalid_fallback_layout(capsys):
     captured = capsys.readouterr()
 
     assert set(env._assets) == {box1.name, box2.name}
-    assert env._assets[box1.name].write_root_pose_to_sim.call_count == 1
-    assert env._assets[box2.name].write_root_pose_to_sim.call_count == 1
+    assert env._assets[box1.name].write_root_pose_to_sim_index.call_count == 1
+    assert env._assets[box2.name].write_root_pose_to_sim_index.call_count == 1
     assert "Writing best-loss fallback placement for env 0; failed checks: ['valid']." in captured.out
 
 
@@ -490,10 +492,10 @@ def test_solve_and_place_objects_partial_reset_applies_absolute_env_origin():
     pool = EnvIndexedPool()
     _solve_and_place_with_pool(env, torch.tensor([2]), pool)
 
-    box1_pose = env._assets[box1.name].write_root_pose_to_sim.call_args[0][0]
-    box2_pose = env._assets[box2.name].write_root_pose_to_sim.call_args[0][0]
-    box1_env_id = env._assets[box1.name].write_root_pose_to_sim.call_args.kwargs["env_ids"]
-    box2_env_id = env._assets[box2.name].write_root_pose_to_sim.call_args.kwargs["env_ids"]
+    box1_pose = env._assets[box1.name].write_root_pose_to_sim_index.call_args.kwargs["root_pose"]
+    box2_pose = env._assets[box2.name].write_root_pose_to_sim_index.call_args.kwargs["root_pose"]
+    box1_env_id = env._assets[box1.name].write_root_pose_to_sim_index.call_args.kwargs["env_ids"]
+    box2_env_id = env._assets[box2.name].write_root_pose_to_sim_index.call_args.kwargs["env_ids"]
     assert box1_pose[0, 0].item() == 12.0
     assert box2_pose[0, 0].item() == 12.0
     assert box1_env_id.tolist() == [2]

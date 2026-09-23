@@ -29,6 +29,7 @@ from isaaclab.markers.config import FRAME_MARKER_CFG
 from isaaclab.sensors.camera.camera_cfg import CameraCfg
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import FrameTransformerCfg, OffsetCfg
 from isaaclab.utils.configclass import configclass
+from isaaclab_physx.sim.schemas import PhysxArticulationRootPropertiesCfg, PhysxRigidBodyPropertiesCfg
 
 from isaaclab_arena.assets.nucleus import ARENA_NUCLEUS_DIR
 from isaaclab_arena.assets.register import register_asset
@@ -274,11 +275,11 @@ class DroidSceneCfg:
         spawn=sim_utils.UsdFileCfg(
             usd_path=_DROID_ROBOT_PRIM.robot_usd_path,
             activate_contact_sensors=True,
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(
+            rigid_props=PhysxRigidBodyPropertiesCfg(
                 disable_gravity=True,
                 max_depenetration_velocity=5.0,
             ),
-            articulation_props=sim_utils.ArticulationRootPropertiesCfg(
+            articulation_props=PhysxArticulationRootPropertiesCfg(
                 enabled_self_collisions=False,
                 solver_position_iteration_count=64,
                 solver_velocity_iteration_count=0,

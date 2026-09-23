@@ -7,7 +7,6 @@ import math
 import torch
 from enum import Enum
 
-import warp as wp
 from isaaclab.assets import RigidObject
 from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab.envs.mdp.terminations import root_height_below_minimum
@@ -95,7 +94,7 @@ def lift_object_il_success(
     """
 
     object_instance: RigidObject = env.scene[object_cfg.name]
-    object_pos = wp.to_torch(object_instance.data.root_pos_w)
+    object_pos = (object_instance.data.root_pos_w).torch
 
     goal_pos = torch.tensor([goal_position] * env.num_envs, device=env.device)
 
@@ -139,11 +138,11 @@ def lift_object_rl_success(
     des_pos_b = command[:, :3]
 
     # Transform goal from robot-base frame to world frame
-    root_pos_w = wp.to_torch(robot.data.root_pos_w)
-    root_quat_w = wp.to_torch(robot.data.root_quat_w)
+    root_pos_w = (robot.data.root_pos_w).torch
+    root_quat_w = (robot.data.root_quat_w).torch
     des_pos_w, _ = combine_frame_transforms(root_pos_w, root_quat_w, des_pos_b)
 
-    object_pos_w = wp.to_torch(object_instance.data.root_pos_w)
+    object_pos_w = (object_instance.data.root_pos_w).torch
     distance = torch.linalg.norm(des_pos_w - object_pos_w[:, :3], dim=1)
     return distance < position_tolerance
 
@@ -172,8 +171,8 @@ def goal_pose_task_termination(
         A boolean tensor of shape (num_envs, )
     """
     object_instance: RigidObject = env.scene[object_cfg.name]
-    object_root_pos_w = wp.to_torch(object_instance.data.root_pos_w)
-    object_root_quat_w = wp.to_torch(object_instance.data.root_quat_w)
+    object_root_pos_w = (object_instance.data.root_pos_w).torch
+    object_root_quat_w = (object_instance.data.root_quat_w).torch
 
     device = env.device
     num_envs = env.num_envs

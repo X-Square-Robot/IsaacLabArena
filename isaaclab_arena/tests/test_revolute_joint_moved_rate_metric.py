@@ -33,7 +33,7 @@ def _test_revolute_joint_moved_rate(simulation_app):
     from isaaclab_arena.environments.arena_env_builder import ArenaEnvBuilder
     from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
     from isaaclab_arena.scene.scene import Scene
-    from isaaclab_arena.tasks.open_door_task import OpenDoorTask
+    from isaaclab_arena.tasks.open_door_task import OpenDoorTask, OpenDoorTaskCFG
     from isaaclab_arena.utils.pose import Pose
 
     asset_registry = AssetRegistry()
@@ -49,7 +49,13 @@ def _test_revolute_joint_moved_rate(simulation_app):
         name="robot_initial_position",
         embodiment=embodiment,
         scene=scene,
-        task=OpenDoorTask(microwave, openness_threshold=0.8, reset_openness=0.2),
+        task=OpenDoorTask(
+            OpenDoorTaskCFG(
+                openable_object=microwave,
+                openness_threshold=0.8,
+                reset_openness=0.2,
+            )
+        ),
         teleop_device=None,
     )
 

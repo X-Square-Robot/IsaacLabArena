@@ -134,8 +134,8 @@ def write_layout_to_sim(
             scene_asset = env.scene[scene_name]
             pose_tensor = pose.to_tensor(device=env.device).unsqueeze(0)
             pose_tensor[0, :3] += env.scene.env_origins[env_id, :]
-            scene_asset.write_root_pose_to_sim(pose_tensor, env_ids=env_id_tensor)
-            scene_asset.write_root_velocity_to_sim(zero_velocity, env_ids=env_id_tensor)
+            scene_asset.write_root_pose_to_sim_index(root_pose=pose_tensor, env_ids=env_id_tensor)
+            scene_asset.write_root_velocity_to_sim_index(root_velocity=zero_velocity, env_ids=env_id_tensor)
 
 
 def solve_and_place_objects(

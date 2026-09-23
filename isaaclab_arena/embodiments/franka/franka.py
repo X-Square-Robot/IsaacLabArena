@@ -31,8 +31,8 @@ from isaaclab.sensors.frame_transformer.frame_transformer_cfg import FrameTransf
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
 from isaaclab.utils.configclass import configclass
 from isaaclab_assets.robots.franka import FRANKA_PANDA_CFG, FRANKA_PANDA_HIGH_PD_CFG
-from isaaclab_tasks.manager_based.manipulation.stack.mdp import franka_stack_events
-from isaaclab_tasks.manager_based.manipulation.stack.mdp.observations import ee_frame_pos, ee_frame_quat
+from isaaclab_tasks.contrib.stack.mdp import franka_stack_events
+from isaaclab_tasks.contrib.stack.mdp.observations import ee_frame_pos, ee_frame_quat
 
 from isaaclab_arena.assets.register import register_asset
 from isaaclab_arena.embodiments.common.arm_mode import ArmMode
@@ -100,6 +100,7 @@ class FrankaEmbodimentBase(EmbodimentBase):
         self.scene_config = FrankaSceneCfg()
         self.observation_config = FrankaObservationsCfg()
         self.observation_config.policy.concatenate_terms = self.concatenate_observation_terms
+        self.JointActionsCfg = FrankaJointActionsCfg
         self.add_camera_variations(self.camera_config)
 
     def get_collision_mesh(self) -> trimesh.Trimesh:
@@ -279,6 +280,25 @@ class FrankaSceneCfg:
 
 
 @configclass
+class FrankaJointActionsCfg:
+    """Absolute joint position action config (7 joints + 1 binary gripper = 8-dim)."""
+
+    body: ActionTermCfg = JointPositionActionCfg(
+        asset_name="robot",
+        joint_names=["panda_joint.*"],
+        preserve_order=True,
+        use_default_offset=False,
+    )
+
+    gripper_action: ActionTermCfg = BinaryJointPositionActionCfg(
+        asset_name="robot",
+        joint_names=["panda_finger.*"],
+        open_command_expr={"panda_finger_.*": 0.04},
+        close_command_expr={"panda_finger_.*": 0.0},
+    )
+
+
+@configclass
 class FrankaCameraCfg(ArenaCameraCfg):
     """Configuration for cameras."""
 
@@ -380,7 +400,7 @@ class FrankaMimicEnv(ManagerBasedRLMimicEnv):
         # Retrieve end effector pose from the observation buffer
         eef_pos = self.obs_buf["policy"]["eef_pos"][env_ids]
         eef_quat = self.obs_buf["policy"]["eef_quat"][env_ids]
-        # Quaternion format is w,x,y,z
+        # Quaternion format is x,y,z,w (matrix_from_quat expects XYZW)
         return PoseUtils.make_pose(eef_pos, PoseUtils.matrix_from_quat(eef_quat))
 
     def target_eef_pose_to_action(

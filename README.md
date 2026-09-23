@@ -6,7 +6,7 @@
 
 [![Alpha](https://img.shields.io/badge/status-alpha-e8912d.svg)](#%EF%B8%8F-project-status)
 [![Version](https://img.shields.io/badge/version-0.2.x-blue.svg)](https://github.com/isaac-sim/IsaacLab-Arena/tree/main)
-[![IsaacSim](https://img.shields.io/badge/IsaacSim-6.0.0-silver.svg)](https://docs.isaacsim.omniverse.nvidia.com/latest/index.html)
+[![IsaacSim](https://img.shields.io/badge/IsaacSim-6.0.1.0-silver.svg)](https://docs.isaacsim.omniverse.nvidia.com/latest/index.html)
 [![IsaacLab](https://img.shields.io/badge/IsaacLab-3.0.0-silver.svg)](https://github.com/isaac-sim/IsaacLab)
 [![Python](https://img.shields.io/badge/python-≥3.12-blue.svg)](https://docs.python.org/3/whatsnew/3.12.html)
 [![Linux](https://img.shields.io/badge/platform-linux--64-orange.svg)](https://releases.ubuntu.com/22.04/)
@@ -78,7 +78,7 @@ Arena solves this by making environment variation a first-class concept. Swap an
 git clone --recurse-submodules git@github.com:isaac-sim/IsaacLab-Arena.git
 cd IsaacLab-Arena
 
-# 2. Create the locked environment (Isaac Lab from source, plus the Isaac Sim, PyTorch, and Newton wheels)
+# 2. Create the locked environment (Isaac Lab from source, plus Isaac Sim 6.0.1.0 and the other locked wheels)
 uv sync
 
 # 3. Activate the environment and accept the Isaac Sim EULA
@@ -230,7 +230,6 @@ Isaac Lab-Arena is part of a growing ecosystem of tools and benchmarks. NVIDIA a
 
 - **[Lightwheel RoboFinals](https://lightwheel.ai/robofinals)** — High-fidelity industrial benchmarks.
 - **[Lightwheel RoboCasa Tasks](https://github.com/LightwheelAI/LW-BenchHub)** — 138+ open-source tasks, 50 datasets per task, 7+ robots.
-- **[Lightwheel LIBERO Tasks](https://github.com/LightwheelAI/LW-BenchHub)** — Adapted LIBERO benchmarks.
 - **[RoboTwin 2.0](https://github.com/RoboTwin-Platform/RoboTwin/tree/IsaacLab-Arena)** — Extended simulation benchmarks using Arena; [Arxiv](https://arxiv.org/abs/2603.01229).
 - **[LeRobot Environment Hub](https://huggingface.co/blog/nvidia/generalist-robotpolicy-eval-isaaclab-arena-lerobot)** — Share and discover Arena environments on Hugging Face.
 - **[Isaac for Healthcare RHEO Workflows](https://github.com/isaac-for-healthcare/i4h-workflows/tree/main/workflows/rheo)** — Healthcare robotics benchmark workflows.

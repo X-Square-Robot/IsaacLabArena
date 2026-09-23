@@ -4,8 +4,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
-import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg
+from isaaclab_physx.sim.schemas import PhysxRigidBodyPropertiesCfg
 from pxr import Usd
 
 from isaaclab_arena.assets.object_base import ObjectType
@@ -24,7 +24,10 @@ def detect_object_type(
     on the presence of a RigidBodyAPI or ArticulationRootAPI at the shallowest depth
     in which one of these APIs is present.
 
-    Note that if more than one API is present on that shallowest depth, we raise an error.
+    When multiple physics roots coexist at the shallowest depth,
+    ArticulationRootAPI takes priority over RigidBodyAPI (an articulation
+    typically contains rigid-body children, so the presence of both is
+    expected for articulated assets).
 
     Args:
         usd_path: The path to the USD file to inspect. Either this or stage must be provided.
@@ -42,40 +45,37 @@ def detect_object_type(
         stage = Usd.Stage.Open(usd_path)
     if variants:
         apply_usd_variant_selections(stage, variants)
-    # We do a Breadth First Search (BFS) through the prims, until we find either
-    # a rigid body or an articulation root. At that point, we continue searching
-    # the rest of the prims at that depth, to ensure that there's nothing else.
-    # If we find more than one, we raise an error.
+    # BFS through prims. Collect *all* physics-annotated prims at the
+    # shallowest depth where at least one appears, then decide the type.
     open_prims = [stage.GetPseudoRoot()]
-    found = False
     found_depth = -1
-    interesting_prim = None
+    has_articulation = False
+    has_rigid = False
     while len(open_prims) > 0:
-        # Update the DFS list
         prim = open_prims.pop(0)
-        open_prims.extend(prim.GetChildren())
-        # Check if we found an interesting prim on this level
-        if is_articulation_root(prim) or is_rigid_body(prim):
-            if found:
-                raise ValueError(f"Found multiple rigid body or articulation roots at depth {get_prim_depth(prim)}")
-            found_depth = get_prim_depth(prim)
-            found = True
-            interesting_prim = prim
-        if found and get_prim_depth(prim) > found_depth:
+        depth = get_prim_depth(prim)
+        # We already collected everything at the shallowest depth — stop.
+        if found_depth >= 0 and depth > found_depth:
             break
-    if not found:
+        open_prims.extend(prim.GetChildren())
+        if is_articulation_root(prim):
+            has_articulation = True
+            found_depth = depth
+        elif is_rigid_body(prim):
+            has_rigid = True
+            found_depth = depth
+    if not has_articulation and not has_rigid:
         return ObjectType.BASE
-    if found and is_rigid_body(interesting_prim):
-        return ObjectType.RIGID
-    if found and is_articulation_root(interesting_prim):
+    # Articulation takes priority: an articulated asset will often have
+    # both ArticulationRootAPI and RigidBodyAPI on sibling prims.
+    if has_articulation:
         return ObjectType.ARTICULATION
-    else:
-        raise ValueError("This should not happen. There is an unknown USD type in the tree.")
+    return ObjectType.RIGID
 
 
 # Predefined rigid body property configurations for assembly tasks
 # High iteration count for precision tasks (peg/hole insertion)
-RIGID_BODY_PROPS_HIGH_PRECISION = sim_utils.RigidBodyPropertiesCfg(
+RIGID_BODY_PROPS_HIGH_PRECISION = PhysxRigidBodyPropertiesCfg(
     disable_gravity=False,
     max_depenetration_velocity=5.0,
     linear_damping=0.0,
@@ -89,7 +89,7 @@ RIGID_BODY_PROPS_HIGH_PRECISION = sim_utils.RigidBodyPropertiesCfg(
 )
 
 # Standard iteration count for gear mesh tasks
-RIGID_BODY_PROPS_MEDIUM_PRECISION = sim_utils.RigidBodyPropertiesCfg(
+RIGID_BODY_PROPS_MEDIUM_PRECISION = PhysxRigidBodyPropertiesCfg(
     disable_gravity=False,
     max_depenetration_velocity=5.0,
     linear_damping=0.0,

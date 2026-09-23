@@ -91,18 +91,14 @@ def collect_garbage_and_clear_cuda_cache() -> None:
         torch.cuda.empty_cache()
 
 
-def reapply_viewer_cfg(env) -> None:
-    """Re-apply ViewerCfg camera position after visualizers are initialized.
-
-    ViewportCameraController calls sim.set_camera_view() during __init__, but visualizers
-    (e.g. KitVisualizer) are not yet initialized at that point and silently ignore the call.
-    After gym.make() returns the visualizers are ready, so we call update_view_location()
-    again to apply the configured eye/lookat position.
-    """
+def reapply_visualizer_cfg(env) -> None:
+    """Re-apply native visualizer camera origin after visualizers are initialized."""
     unwrapped = env.unwrapped
-    vcc = getattr(unwrapped, "viewport_camera_controller", None)
-    if vcc is not None:
-        vcc.update_view_location()
+    for visualizer in getattr(getattr(unwrapped, "sim", None), "visualizers", ()):
+        if getattr(getattr(visualizer, "cfg", None), "visualizer_type", None) != "kit":
+            continue
+        visualizer.reapply_origin()
+        return
 
 
 def _kill_child_processes() -> None:

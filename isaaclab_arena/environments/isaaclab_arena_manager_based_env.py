@@ -40,6 +40,11 @@ class IsaacLabArenaManagerBasedRLEnv(ManagerBasedRLEnv):
         self._episode_counts: dict[int, int] = {}
         # The initial reset touches every env before any episode has run; skip it.
         self._first_reset = True
+        if getattr(cfg, "rtx_global_settings", None) is not None:
+            # Deferred import: isaac_rtx_renderer_utils pulls in omni.usd, which needs a running app.
+            from isaaclab_physx.renderers.isaac_rtx_renderer_utils import apply_isaac_rtx_global_settings
+
+            apply_isaac_rtx_global_settings(cfg.rtx_global_settings)
         super().__init__(cfg=cfg, render_mode=render_mode, **kwargs)
 
     @property

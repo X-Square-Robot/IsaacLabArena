@@ -10,7 +10,7 @@ from isaaclab.assets import RigidObjectCfg
 from isaaclab.sensors.contact_sensor.contact_sensor_cfg import ContactSensorCfg
 
 from isaaclab_arena.assets.object import Object
-from isaaclab_arena.assets.object_base import ObjectBase, ObjectType
+from isaaclab_arena.assets.object_base import ObjectBase, ObjectType, asset_anchor_path
 from isaaclab_arena.assets.object_utils import detect_object_type
 from isaaclab_arena.utils.bounding_box import AxisAlignedBoundingBox
 from isaaclab_arena.utils.pose import Pose
@@ -64,7 +64,7 @@ class RigidObjectSet(Object):
         self.variant_indices_by_env: list[int] | None = None
 
         if prim_path is None:
-            prim_path = f"{{ENV_REGEX_NS}}/{name}"
+            prim_path = asset_anchor_path(name)
 
         super().__init__(
             name=name,

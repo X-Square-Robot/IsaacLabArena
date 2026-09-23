@@ -5,14 +5,16 @@
 
 """Tests for Dexsuite Kuka Allegro lift Arena example (no simulation)."""
 
+import importlib
+import sys
+import types
+
 import pytest
 
 
 @pytest.mark.with_newton
 def test_dexsuite_lift_example_in_cli_registry() -> None:
-    pytest.importorskip(
-        "isaaclab_tasks.manager_based.manipulation.dexsuite.config.kuka_allegro.dexsuite_kuka_allegro_env_cfg"
-    )
+    pytest.importorskip("isaaclab_tasks.core.lift.config.kuka_allegro.kuka_allegro_env_cfg")
     from isaaclab_arena.assets.registries import EnvironmentRegistry
     from isaaclab_arena_environments.cli import ensure_environments_registered
 
@@ -24,9 +26,7 @@ def test_dexsuite_lift_example_in_cli_registry() -> None:
 
 @pytest.mark.with_newton
 def test_procedural_assets_registered() -> None:
-    pytest.importorskip(
-        "isaaclab_tasks.manager_based.manipulation.dexsuite.config.kuka_allegro.dexsuite_kuka_allegro_env_cfg"
-    )
+    pytest.importorskip("isaaclab_tasks.core.lift.config.kuka_allegro.kuka_allegro_env_cfg")
     from isaaclab_arena.assets.registries import AssetRegistry
 
     reg = AssetRegistry()
@@ -35,10 +35,37 @@ def test_procedural_assets_registered() -> None:
 
 
 @pytest.mark.with_newton
-def test_dexsuite_kuka_lift_task_matches_lift_mdp_flags() -> None:
-    pytest.importorskip(
-        "isaaclab_tasks.manager_based.manipulation.dexsuite.config.kuka_allegro.dexsuite_kuka_allegro_env_cfg"
+def test_dexsuite_lift_environment_uses_current_runner_config(monkeypatch: pytest.MonkeyPatch) -> None:
+    pytest.importorskip("isaaclab_tasks.core.lift.config.kuka_allegro.kuka_allegro_env_cfg")
+
+    from isaaclab_arena_environments.dexsuite_lift_environment import (
+        DexsuiteLiftEnvironment,
+        DexsuiteLiftEnvironmentCfg,
     )
+
+    scene_module = types.ModuleType("isaaclab_arena.scene.scene")
+
+    class Scene:
+        def __init__(self, assets):
+            self.assets = assets
+
+    scene_module.Scene = Scene
+    monkeypatch.setitem(sys.modules, "isaaclab_arena.scene.scene", scene_module)
+
+    environment = DexsuiteLiftEnvironment().build(DexsuiteLiftEnvironmentCfg())
+
+    module_path, separator, symbol_name = environment.rl_policy_cfg.partition(":")
+    assert separator == ":"
+    assert module_path == "isaaclab_tasks.core.lift.config.kuka_allegro.agents.rsl_rl_ppo_cfg"
+    assert symbol_name == "KukaAllegroPPORunnerCfg"
+
+    runner_module = importlib.import_module(module_path)
+    assert getattr(runner_module, symbol_name).__name__ == symbol_name
+
+
+@pytest.mark.with_newton
+def test_dexsuite_kuka_lift_task_matches_lift_mdp_flags() -> None:
+    pytest.importorskip("isaaclab_tasks.core.lift.config.kuka_allegro.kuka_allegro_env_cfg")
 
     from isaaclab_arena.assets.registries import AssetRegistry
     from isaaclab_arena.metrics.success_rate import SuccessRateMetric

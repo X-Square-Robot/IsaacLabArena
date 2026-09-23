@@ -26,7 +26,7 @@ def _test_object_on_destination_termination(simulation_app) -> bool:
     from isaaclab_arena.environments.arena_env_builder import ArenaEnvBuilder
     from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
     from isaaclab_arena.scene.scene import Scene
-    from isaaclab_arena.tasks.pick_and_place_task import PickAndPlaceTask
+    from isaaclab_arena.tasks.pick_and_place_task import PickAndPlaceTask, PickAndPlaceTaskCFG
     from isaaclab_arena.utils.pose import Pose
 
     args_parser = get_isaaclab_arena_cli_parser()
@@ -49,7 +49,13 @@ def _test_object_on_destination_termination(simulation_app) -> bool:
 
     scene = Scene(assets=[background, cracker_box, destination_location])
 
-    task = PickAndPlaceTask(cracker_box, destination_location, background)
+    task = PickAndPlaceTask(
+        PickAndPlaceTaskCFG(
+            pick_up_object=cracker_box,
+            destination_location=destination_location,
+            background_scene=background,
+        )
+    )
     isaaclab_arena_environment = IsaacLabArenaEnvironment(
         name="kitchen",
         embodiment=FrankaIKEmbodiment(),

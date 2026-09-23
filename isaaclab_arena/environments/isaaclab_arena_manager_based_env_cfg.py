@@ -8,13 +8,12 @@ from __future__ import annotations
 from isaaclab.envs import ManagerBasedRLEnvCfg
 from isaaclab.envs.mimic_env_cfg import MimicEnvCfg
 from isaaclab.managers import RecorderManagerBaseCfg
-from isaaclab.sim import RenderCfg, SimulationCfg
+from isaaclab.sim import SimulationCfg
 from isaaclab.utils.configclass import configclass
-
-# Import from the package root so this resolves whether MJWarpSolverCfg lives in
-# newton_manager_cfg (older isaaclab_newton) or mjwarp_manager_cfg (Isaac Lab Beta 2).
-from isaaclab_newton.physics import MJWarpSolverCfg, NewtonCfg
+from isaaclab_newton.physics.mjwarp_manager_cfg import MJWarpSolverCfg
+from isaaclab_newton.physics.newton_manager_cfg import NewtonCfg
 from isaaclab_physx.physics import PhysxCfg
+from isaaclab_physx.renderers import IsaacRtxRendererGlobalSettingsCfg
 from isaaclab_tasks.utils import PresetCfg
 
 
@@ -76,22 +75,25 @@ class IsaacLabArenaManagerBasedRLEnvCfg(ManagerBasedRLEnvCfg):
     # Task language description
     task_description: str | None = None
 
-    # Override the RTX renderer's built-in scene ambient (carb /rtx/sceneDb/ambientLightIntensity, default 1.0 with
-    # color [0.1, 0.1, 0.1]) so that USD light prims fully control scene illumination.
     sim: SimulationCfg = SimulationCfg(
         dt=1 / 200,
         render_interval=2,
-        render=RenderCfg(
-            carb_settings={
-                "/rtx/sceneDb/ambientLightIntensity": 0.0,
-                # Workaround for IsaacLab #6424: stop the physx-tensors filter matcher from
-                # recursing into leaf collision shapes so a contact filter pointing at a rigid
-                # body with multiple collision shapes resolves to a single entry (otherwise the
-                # view fails with "expected 1, found N").
-                "/physics/tensors/recursiveLeafPatternMatch": False,
-            },
-        ),
     )
+
+    rtx_global_settings: IsaacRtxRendererGlobalSettingsCfg | None = IsaacRtxRendererGlobalSettingsCfg(
+        ambient_light_intensity=0.0,
+        carb_settings={
+            # Workaround for IsaacLab #6424: stop the physx-tensors filter matcher from
+            # recursing into leaf collision shapes so a contact filter pointing at a rigid
+            # body with multiple collision shapes resolves to a single entry.
+            "/physics/tensors/recursiveLeafPatternMatch": False,
+        },
+    )
+    """Global RTX settings applied at env creation (IsaacLab 3.0 removed ``SimulationCfg.render``).
+
+    The default zeroes the renderer's built-in scene ambient (carb /rtx/sceneDb/ambientLightIntensity,
+    default 1.0 with color [0.1, 0.1, 0.1]) so that USD light prims fully control scene illumination.
+    """
     decimation: int = 4
     wait_for_textures: bool = False
 

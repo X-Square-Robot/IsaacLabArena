@@ -34,7 +34,7 @@ class Gr1OpenMicrowaveEnvironment(ArenaEnvironmentFactory[Gr1OpenMicrowaveEnviro
         """Build the environment from its typed configuration."""
         from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
         from isaaclab_arena.scene.scene import Scene
-        from isaaclab_arena.tasks.open_door_task import OpenDoorTask
+        from isaaclab_arena.tasks.open_door_task import OpenDoorTask, OpenDoorTaskCFG
         from isaaclab_arena.utils.pose import Pose
 
         background = self.asset_registry.get_asset_by_name("kitchen")()
@@ -73,7 +73,14 @@ class Gr1OpenMicrowaveEnvironment(ArenaEnvironmentFactory[Gr1OpenMicrowaveEnviro
             name=self.name,
             embodiment=embodiment,
             scene=scene,
-            task=OpenDoorTask(microwave, openness_threshold=0.8, reset_openness=0.2, episode_length_s=5.0),
+            task=OpenDoorTask(
+                OpenDoorTaskCFG(
+                    openable_object=microwave,
+                    openness_threshold=0.8,
+                    reset_openness=0.3,
+                    episode_length_s=2.0,
+                )
+            ),
             teleop_device=teleop_device,
         )
 

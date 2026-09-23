@@ -9,12 +9,38 @@ from pathlib import Path
 from isaaclab_arena_gr00t.policy.config.task_mode import TaskMode
 
 
+def _is_huggingface_model_id(model_path: str) -> bool:
+    """Return True if model_path looks like a HuggingFace Hub repo id (e.g. 'nvidia/GR00T-N1.6-3B')."""
+    if not model_path:
+        return False
+    # HF repo ids are "owner/repo_name" - no leading path sep, and not an existing local path
+    return "/" in model_path and not model_path.startswith(("/", ".")) and not Path(model_path).exists()
+
+
 @dataclass
 class Gr00tClosedloopPolicyCfg:
     """Configure GR00T closed-loop policy translation and inference."""
 
     language_instruction: str = field(
         default="", metadata={"description": "Instruction given to the policy in natural language."}
+    )
+    model_path: str | None = field(
+        default=None,
+        metadata={
+            "description": (
+                "Full path to the tuned model checkpoint directory (or a HuggingFace model id). Required for"
+                " local in-process inference (Gr00tClosedloopPolicy); unused by the remote policy."
+            )
+        },
+    )
+    data_config: str | None = field(
+        default=None,
+        metadata={
+            "description": (
+                "Deprecated and unused: GR00T N1.6 derives modality configs from the model processor / "
+                "MODALITY_CONFIGS registry. Kept for backwards compatibility with older callers."
+            )
+        },
     )
     action_horizon: int = field(
         default=16, metadata={"description": "Number of actions in the policy's predictionhorizon."}
@@ -97,6 +123,10 @@ class Gr00tClosedloopPolicyCfg:
         assert Path(
             self.state_joints_config_path
         ).exists(), f"state_joints_config_path does not exist: {self.state_joints_config_path}"
+        if self.model_path is not None:
+            assert Path(self.model_path).exists() or _is_huggingface_model_id(
+                self.model_path
+            ), f"model_path does not exist and is not a HuggingFace model id: {self.model_path}"
         if self.modality_config_path:
             assert Path(
                 self.modality_config_path
@@ -105,7 +135,8 @@ class Gr00tClosedloopPolicyCfg:
         if isinstance(self.pov_cam_name_sim, str):
             self.pov_cam_name_sim = [self.pov_cam_name_sim]
 
-        # embodiment_tag
+        # embodiment_tag (normalize case so e.g. 'gr1' and 'GR1' are both accepted)
+        self.embodiment_tag = self.embodiment_tag.upper()
         assert self.embodiment_tag in [
             "GR1",
             "NEW_EMBODIMENT",

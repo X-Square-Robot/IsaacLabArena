@@ -27,10 +27,9 @@ class SuccessRecorder(RecorderTerm):
         # The first time that the environment is reset, we don't want to record the success,
         # because nothing has happened yet.
         if self.first_reset:
-            # We expect that on the first reset ALL the environments are reset.
-            assert len(env_ids) == self._env.num_envs
             self.first_reset = False
-            # Record nothing.
+            assert len(env_ids) == self._env.num_envs
+            # Record nothing for the initial full-environment reset.
             return None, None
         assert hasattr(self._env, "termination_manager")
         assert "success" in self._env.termination_manager.active_terms

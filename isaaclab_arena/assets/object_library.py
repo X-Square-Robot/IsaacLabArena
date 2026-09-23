@@ -9,19 +9,20 @@ from abc import ABC
 from typing import TYPE_CHECKING, Any
 
 import isaaclab.sim as sim_utils
+from isaaclab_physx.sim.schemas import PhysxCollisionPropertiesCfg, PhysxRigidBodyPropertiesCfg
+from isaaclab_physx.sim.spawners.materials import PhysxRigidBodyMaterialCfg
 
 if TYPE_CHECKING:
     from isaaclab_arena.assets.hdr_image import HDRImage
 
 from isaaclab.assets import RigidObjectCfg
 from isaaclab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg
-from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
+from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, X2ROBOT_NUCLEUS_DIR
 
 from isaaclab_arena.affordances.openable import Openable
 from isaaclab_arena.affordances.placeable import Placeable
 from isaaclab_arena.affordances.pressable import Pressable
 from isaaclab_arena.affordances.turnable import Turnable
-from isaaclab_arena.assets.lightwheel_lazy import LightwheelLazyPath
 from isaaclab_arena.assets.nucleus import ARENA_NUCLEUS_DIR
 from isaaclab_arena.assets.object import Object
 from isaaclab_arena.assets.object_base import ObjectType
@@ -32,6 +33,13 @@ from isaaclab_arena.assets.object_utils import (
 )
 from isaaclab_arena.assets.register import register_asset
 from isaaclab_arena.utils.pose import Pose
+
+# Lightwheel OpenSource asset pack lives on the X2Robot internal Nucleus server, under
+# ``/Library/art_assets`` rather than the ``simready`` subtree. Derive the server+library
+# root from X2ROBOT_NUCLEUS_DIR so there is a single source of truth for the host.
+LIGHTWHEEL_NUCLEUS_DIR = (
+    f"{X2ROBOT_NUCLEUS_DIR.rsplit('/', 1)[0]}/art_assets/unsorted_packs/Lightwheel_OpenSource/Manipulation"
+)
 
 
 class LibraryObject(Object):
@@ -133,8 +141,7 @@ class Microwave(LibraryObject, Openable):
 
     name = "microwave"
     tags = ["object", "openable"]
-    # Resolved lazily on first attribute access — see isaaclab_arena.assets.lightwheel_lazy.
-    usd_path = LightwheelLazyPath(registry_type="fixtures", file_name="Microwave039", file_type="USD")
+    usd_path = f"{LIGHTWHEEL_NUCLEUS_DIR}/Microwave039/Microwave039.usd"
     object_type = ObjectType.ARTICULATION
 
     # Openable affordance parameters
@@ -161,11 +168,11 @@ class CoffeeMachine(LibraryObject, Pressable):
 
     name = "coffee_machine"
     tags = ["object", "pressable"]
-    usd_path = LightwheelLazyPath(registry_type="fixtures", file_name="CoffeeMachine108", file_type="USD")
+    usd_path = f"{LIGHTWHEEL_NUCLEUS_DIR}/CoffeeMachine039/CoffeeMachine039.usd"
     object_type = ObjectType.ARTICULATION
 
     # Openable affordance parameters
-    pressable_joint_name = "CoffeeMachine108_Button002_joint"
+    pressable_joint_name = "Button002_joint"
     pressedness_threshold = 0.5
 
     def __init__(
@@ -189,8 +196,7 @@ class StandMixer(LibraryObject, Turnable):
     name = "stand_mixer"
     tags = ["object", "turnable"]
 
-    # TODO(xinjieyao, 2026.01.07): Trigger sync to production bucket for release.
-    usd_path = f"{ARENA_NUCLEUS_DIR}/Arena/assets/object_library/lightwheel_StandMixer013/StandMixer013.usd"
+    usd_path = f"{LIGHTWHEEL_NUCLEUS_DIR}/StandMixer013/StandMixer013.usd"
     object_type = ObjectType.ARTICULATION
 
     # knob turnable affordance parameters
@@ -291,7 +297,7 @@ class Mug(LibraryObject, Placeable):
             upright_axis_name=self.upright_axis_name,
             orientation_threshold=self.orientation_threshold,
         )
-        RIGID_BODY_PROPS = sim_utils.RigidBodyPropertiesCfg(
+        RIGID_BODY_PROPS = PhysxRigidBodyPropertiesCfg(
             solver_position_iteration_count=16,
             solver_velocity_iteration_count=1,
             max_angular_velocity=1000.0,
@@ -340,8 +346,8 @@ class Sphere(LibraryObject):
     default_spawner_cfg = sim_utils.SphereCfg(
         radius=0.1,
         visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.8, 0.2, 0.2)),
-        collision_props=sim_utils.CollisionPropertiesCfg(),
-        rigid_props=sim_utils.RigidBodyPropertiesCfg(
+        collision_props=PhysxCollisionPropertiesCfg(),
+        rigid_props=PhysxRigidBodyPropertiesCfg(
             solver_position_iteration_count=16,
             solver_velocity_iteration_count=1,
             max_angular_velocity=1000.0,
@@ -559,7 +565,7 @@ class Peg(LibraryObject):
     spawn_cfg_addon = {
         "rigid_props": RIGID_BODY_PROPS_HIGH_PRECISION,
         "mass_props": sim_utils.MassPropertiesCfg(mass=0.019),
-        "collision_props": sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
+        "collision_props": PhysxCollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
     }
     asset_cfg_addon = {
         "init_state": EMPTY_ARTICULATION_INIT_STATE_CFG,
@@ -580,7 +586,7 @@ class Hole(LibraryObject):
     spawn_cfg_addon = {
         "rigid_props": RIGID_BODY_PROPS_HIGH_PRECISION,
         "mass_props": sim_utils.MassPropertiesCfg(mass=0.05),
-        "collision_props": sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
+        "collision_props": PhysxCollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
     }
     asset_cfg_addon = {
         "init_state": EMPTY_ARTICULATION_INIT_STATE_CFG,
@@ -601,7 +607,7 @@ class SmallGear(LibraryObject):
     spawn_cfg_addon = {
         "rigid_props": RIGID_BODY_PROPS_MEDIUM_PRECISION,
         "mass_props": sim_utils.MassPropertiesCfg(mass=0.019),
-        "collision_props": sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
+        "collision_props": PhysxCollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
     }
     asset_cfg_addon = {
         "init_state": EMPTY_ARTICULATION_INIT_STATE_CFG,
@@ -622,7 +628,7 @@ class LargeGear(LibraryObject):
     spawn_cfg_addon = {
         "rigid_props": RIGID_BODY_PROPS_MEDIUM_PRECISION,
         "mass_props": sim_utils.MassPropertiesCfg(mass=0.019),
-        "collision_props": sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
+        "collision_props": PhysxCollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
     }
     asset_cfg_addon = {
         "init_state": EMPTY_ARTICULATION_INIT_STATE_CFG,
@@ -643,7 +649,7 @@ class GearBase(LibraryObject):
     spawn_cfg_addon = {
         "rigid_props": RIGID_BODY_PROPS_MEDIUM_PRECISION,
         "mass_props": sim_utils.MassPropertiesCfg(mass=0.05),
-        "collision_props": sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
+        "collision_props": PhysxCollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
     }
     asset_cfg_addon = {
         "init_state": EMPTY_ARTICULATION_INIT_STATE_CFG,
@@ -664,58 +670,11 @@ class MediumGear(LibraryObject):
     spawn_cfg_addon = {
         "rigid_props": RIGID_BODY_PROPS_MEDIUM_PRECISION,
         "mass_props": sim_utils.MassPropertiesCfg(mass=0.019),
-        "collision_props": sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
+        "collision_props": PhysxCollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
     }
     asset_cfg_addon = {
         "init_state": EMPTY_ARTICULATION_INIT_STATE_CFG,
     }
-
-
-@register_asset
-class Broccoli(LibraryObject):
-    """
-    Brocolli
-    """
-
-    name = "broccoli"
-    tags = ["object", "vegetable", "graspable"]
-    usd_path = LightwheelLazyPath(registry_type="objects", registry_name=["broccoli"], file_type="USD")
-
-
-@register_asset
-class SweetPotato(LibraryObject):
-    """
-    SweetPotato
-    """
-
-    name = "sweet_potato"
-    tags = ["object", "vegetable", "graspable"]
-    usd_path = LightwheelLazyPath(registry_type="objects", file_name="SweetPotato005", file_type="USD")
-    scale = (1.5, 1.5, 1.5)
-
-
-@register_asset
-class Jug(LibraryObject):
-    """
-    Jug
-    """
-
-    name = "jug"
-    tags = ["object", "graspable"]
-    usd_path = LightwheelLazyPath(registry_type="objects", file_name="Jug005", file_type="USD")
-    scale = (2.0, 2.0, 2.0)
-
-
-@register_asset
-class BeerBottle(LibraryObject):
-    """
-    Beer Bottle
-    """
-
-    name = "beer_bottle"
-    tags = ["object", "graspable"]
-    usd_path = LightwheelLazyPath(registry_type="objects", file_name="beer016", file_type="USD")
-    scale = (1.2, 1.2, 1.2)
 
 
 @register_asset
@@ -1901,8 +1860,8 @@ class GreyBinRobolab(LibraryObject):
 
 _PROCEDURAL_TABLE_SPAWN_CFG = sim_utils.CuboidCfg(
     size=(0.8, 1.5, 0.04),
-    rigid_props=sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),
-    collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005),
+    rigid_props=PhysxRigidBodyPropertiesCfg(kinematic_enabled=True),
+    collision_props=PhysxCollisionPropertiesCfg(contact_offset=0.005),
     visible=False,
 )
 
@@ -1942,13 +1901,13 @@ class ProceduralTable(Object):
 
 _PROCEDURAL_CUBE_SPAWN_CFG = sim_utils.CuboidCfg(
     size=(0.05, 0.1, 0.1),
-    physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=0.5),
-    rigid_props=sim_utils.RigidBodyPropertiesCfg(
+    physics_material=PhysxRigidBodyMaterialCfg(static_friction=0.5),
+    rigid_props=PhysxRigidBodyPropertiesCfg(
         solver_position_iteration_count=16,
         solver_velocity_iteration_count=0,
         disable_gravity=False,
     ),
-    collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005),
+    collision_props=PhysxCollisionPropertiesCfg(contact_offset=0.005),
     mass_props=sim_utils.MassPropertiesCfg(mass=0.2),
 )
 

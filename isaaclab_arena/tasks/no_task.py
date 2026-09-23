@@ -1,17 +1,14 @@
-# Copyright (c) 2025-2026, The Isaac Lab Arena Project Developers (https://github.com/isaac-sim/IsaacLab-Arena/blob/main/CONTRIBUTORS.md).
+# Copyright (c) 2026, The Isaac Lab Arena Project Developers (https://github.com/isaac-sim/IsaacLab-Arena/blob/main/CONTRIBUTORS.md).
 # All rights reserved.
 #
 # SPDX-License-Identifier: Apache-2.0
 
 from isaaclab.envs.common import ViewerCfg
 
-from isaaclab_arena.assets.register import register_task
-from isaaclab_arena.embodiments.common.arm_mode import ArmMode
-from isaaclab_arena.tasks.task_base import TaskBase
+from isaaclab_arena.tasks.task_base import ManaTask
 
 
-@register_task
-class NoTask(TaskBase):
+class NoTask(ManaTask):
     """Null object for environments without a task."""
 
     name = "no_task"
@@ -20,19 +17,19 @@ class NoTask(TaskBase):
         super().__init__()
 
     def get_scene_cfg(self):
-        pass
+        return None
 
     def get_termination_cfg(self):
-        pass
+        return None
 
     def get_events_cfg(self):
-        pass
+        return None
 
-    def get_mimic_env_cfg(self, arm_mode: ArmMode):
-        pass
+    def get_mimic_env_cfg(self, embodiment_name: str):
+        return None
 
     def get_metrics(self):
-        pass
+        return []
 
     def get_viewer_cfg(self) -> ViewerCfg:
         return ViewerCfg(eye=(-1.5, -1.5, 1.5), lookat=(0.0, 0.0, 0.5))

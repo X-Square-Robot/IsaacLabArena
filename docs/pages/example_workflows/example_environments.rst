@@ -509,7 +509,7 @@ position. Featured in the
    * - **Task Class**
      - ``DexsuiteLiftTask`` (object_pose command, position-only, resampled every 2–3 s)
    * - **Training Method**
-     - Pre-trained in Isaac Lab via ``DexsuiteKukaAllegroPPORunnerCfg`` (RSL-RL PPO)
+     - Pre-trained in Isaac Lab via ``KukaAllegroPPORunnerCfg`` (RSL-RL PPO)
    * - **Physics Backend**
      - PhysX (default) or Newton (``--presets newton``)
    * - **CLI Args**
@@ -555,41 +555,6 @@ with ``zero_action`` or any policy.
 
 Sequential / Composite Tasks
 ----------------------------
-
-put_item_in_fridge_and_close_door
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-**Task ID:** ``put_item_in_fridge_and_close_door``
-
-**Class:** ``GR1PutAndCloseDoorEnvironment`` (``isaaclab_arena_environments/gr1_put_and_close_door_environment.py``)
-
-**Task Description:** GR1 humanoid sequentially picks an object, places it on
-the refrigerator shelf, then closes the refrigerator door. Featured in the
-:doc:`sequential_static_manipulation/index` workflow.
-
-.. list-table::
-   :widths: 30 70
-   :header-rows: 1
-
-   * - Property
-     - Value
-   * - **Tags**
-     - Sequential manipulation, articulated objects
-   * - **Skills**
-     - Pick, Place, Close door
-   * - **Embodiment**
-     - ``gr1_pink`` (default) via ``--embodiment``
-   * - **Scene**
-     - ``lightwheel_robocasa_kitchen`` background (``--kitchen_style`` selectable), ``light``, kitchen counter anchor
-   * - **Objects**
-     - Pick: ``ranch_dressing_hope_robolab`` (default), or ``--object_set`` for heterogeneous spawning; Destination: refrigerator shelf reference; Container: ``refrigerator`` (articulated)
-   * - **Task Class**
-     - ``PutAndCloseDoorTask`` (sequential: ``PickAndPlaceTask`` → ``CloseDoorTask``, episode_length_s = 10)
-   * - **Interop**
-     - Isaac Lab Mimic (``put_and_close_door_task_D0`` datagen)
-   * - **CLI Args**
-     - ``--object``, ``--object_set``, ``--kitchen_style``, ``--embodiment``, ``--teleop_device``
-
 
 franka_put_and_close_door
 ^^^^^^^^^^^^^^^^^^^^^^^^^

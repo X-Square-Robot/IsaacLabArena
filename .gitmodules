@@ -1,6 +1,10 @@
 [submodule "submodules/IsaacLab"]
 	path = submodules/IsaacLab
-	url = git@github.com:isaac-sim/IsaacLab.git
+	url = ssh://git@gitlab.zbl.local:50022/mana/engine/isaaclab.git
+	branch = publication
+	ignore = all
 [submodule "submodules/Isaac-GR00T"]
 	path = submodules/Isaac-GR00T
-	url = git@github.com:NVIDIA/Isaac-GR00T.git
+	url = ssh://git@gitlab.zbl.local:50022/mana/model/Isaac-GR00T.git
+	branch = main
+	ignore = all

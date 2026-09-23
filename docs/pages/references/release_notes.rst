@@ -29,7 +29,6 @@ industrial and academic benchmarks on the unified Isaac Lab-Arena core, so you c
 - `Lightwheel RoboFinals <https://lightwheel.ai/robofinals>`_ — High-fidelity industrial benchmarks.
 - `Lightwheel RoboCasa Tasks <https://github.com/LightwheelAI/LW-BenchHub>`_ — 138+ open-source tasks,
   50 datasets per task, 7+ robots.
-- `Lightwheel LIBERO Tasks <https://github.com/LightwheelAI/LW-BenchHub>`_ — Adapted LIBERO benchmarks.
 - `RoboTwin 2.0 <https://github.com/RoboTwin-Platform/RoboTwin/tree/IsaacLab-Arena>`_ — Extended simulation
   benchmarks using Arena; `Arxiv <https://arxiv.org/abs/2603.01229>`_.
 - `LeRobot Environment Hub <https://huggingface.co/blog/nvidia/generalist-robotpolicy-eval-isaaclab-arena-lerobot>`_ — Share

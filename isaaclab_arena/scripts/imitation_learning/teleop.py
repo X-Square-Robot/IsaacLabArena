@@ -46,12 +46,14 @@ simulation_app = app_launcher.app
 import torch
 
 import isaaclab_tasks  # noqa: F401
-import isaaclab_tasks.manager_based.manipulation.pick_place  # noqa: F401
+import isaaclab_tasks.contrib.pick_place  # noqa: F401
 import omni.log
 from isaaclab.devices import Se3Gamepad, Se3GamepadCfg, Se3Keyboard, Se3KeyboardCfg, Se3SpaceMouse, Se3SpaceMouseCfg
 from isaaclab.devices.teleop_device_factory import create_teleop_device
 from isaaclab.managers import TerminationTermCfg as DoneTerm
-from isaaclab_tasks.manager_based.manipulation.lift import mdp
+from isaaclab_physx.renderers import IsaacRtxRendererGlobalSettingsCfg
+from isaaclab_physx.renderers.isaac_rtx_renderer_utils import apply_isaac_rtx_global_settings
+from isaaclab_tasks.core.lift import mdp
 from isaaclab_teleop import IsaacTeleopCfg, create_isaac_teleop_device, remove_camera_configs
 
 
@@ -80,14 +82,14 @@ def main() -> None:
         # If cameras are not enabled and XR is enabled, remove camera configs
         if not args_cli.enable_cameras:
             env_cfg = remove_camera_configs(env_cfg)
-        env_cfg.sim.render.antialiasing_mode = "DLSS"
+        apply_isaac_rtx_global_settings(IsaacRtxRendererGlobalSettingsCfg(antialiasing_mode="DLSS"))
 
     try:
         # create environment
         env = gym.make(env_name, cfg=env_cfg, **env_kwargs)
-        from isaaclab_arena.utils.isaaclab_utils.simulation_app import reapply_viewer_cfg
+        from isaaclab_arena.utils.isaaclab_utils.simulation_app import reapply_visualizer_cfg
 
-        reapply_viewer_cfg(env)
+        reapply_visualizer_cfg(env)
         env = env.unwrapped
         # check environment name (for reach , we don't allow the gripper)
         if "Reach" in args_cli.example_environment:

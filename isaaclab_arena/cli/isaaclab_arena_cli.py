@@ -30,11 +30,13 @@ def arena_env_builder_cfg_from_argparse(args_cli: argparse.Namespace) -> ArenaEn
 def get_isaaclab_arena_cli_parser() -> argparse.ArgumentParser:
     """Get a complete argument parser with both Isaac Lab and IsaacLab Arena arguments."""
     parser = argparse.ArgumentParser(description="IsaacLab Arena CLI parser.")
-    AppLauncher.add_app_launcher_args(parser)
+    # Register arena args before AppLauncher's: its add_app_launcher_args() warns
+    # if the parser has no args yet. Arena flags don't collide with its reserved names.
     add_isaac_lab_cli_args(parser)
     add_isaaclab_arena_cli_args(parser)
     add_external_environments_cli_args(parser)
     add_env_graph_spec_cli_args(parser)
+    AppLauncher.add_app_launcher_args(parser)
     return parser
 
 

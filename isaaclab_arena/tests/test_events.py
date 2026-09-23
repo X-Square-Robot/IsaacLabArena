@@ -7,8 +7,6 @@ import torch
 import tqdm
 import traceback
 
-import warp as wp
-
 from isaaclab_arena.tests.utils.persistent_simulation_app import run_function_with_persistent_simulation_app
 
 NUM_STEPS = 10
@@ -30,7 +28,7 @@ def _test_set_object_pose_per_env_event(simulation_app):
     from isaaclab_arena.environments.arena_env_builder import ArenaEnvBuilder
     from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
     from isaaclab_arena.scene.scene import Scene
-    from isaaclab_arena.tasks.pick_and_place_task import PickAndPlaceTask
+    from isaaclab_arena.tasks.pick_and_place_task import PickAndPlaceTask, PickAndPlaceTaskCFG
     from isaaclab_arena.terms.events import set_object_pose_per_env
     from isaaclab_arena.utils.pose import Pose
 
@@ -46,11 +44,19 @@ def _test_set_object_pose_per_env_event(simulation_app):
     )
 
     scene = Scene(assets=[background, cracker_box])
+    task = PickAndPlaceTask(
+        PickAndPlaceTaskCFG(
+            pick_up_object=cracker_box,
+            destination_location=destination_location,
+            background_scene=background,
+        )
+    )
+
     isaaclab_arena_environment = IsaacLabArenaEnvironment(
         name="robot_initial_position",
         embodiment=embodiment,
         scene=scene,
-        task=PickAndPlaceTask(cracker_box, destination_location, background),
+        task=task,
         teleop_device=None,
     )
 
@@ -117,6 +123,7 @@ def _test_set_object_pose_per_env_event(simulation_app):
 def _test_object_moves_with_initial_velocity(simulation_app):
     """Test that a sphere moves with the given initial velocity after reset."""
     import isaaclab.sim as sim_utils
+    from isaaclab_physx.sim.schemas import PhysxCollisionPropertiesCfg, PhysxRigidBodyPropertiesCfg
 
     from isaaclab_arena.assets.registries import AssetRegistry
     from isaaclab_arena.cli.isaaclab_arena_cli import arena_env_builder_cfg_from_argparse, get_isaaclab_arena_cli_parser
@@ -130,8 +137,8 @@ def _test_object_moves_with_initial_velocity(simulation_app):
     no_gravity_cfg = sim_utils.SphereCfg(
         radius=0.1,
         visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.8, 0.2, 0.2)),
-        collision_props=sim_utils.CollisionPropertiesCfg(),
-        rigid_props=sim_utils.RigidBodyPropertiesCfg(
+        collision_props=PhysxCollisionPropertiesCfg(),
+        rigid_props=PhysxRigidBodyPropertiesCfg(
             solver_position_iteration_count=16,
             solver_velocity_iteration_count=1,
             max_angular_velocity=1000.0,
@@ -160,7 +167,7 @@ def _test_object_moves_with_initial_velocity(simulation_app):
     env.reset()
 
     try:
-        initial_position = wp.to_torch(env.unwrapped.scene[sphere.name].data.root_pose_w)[0, :3].clone()
+        initial_position = (env.unwrapped.scene[sphere.name].data.root_pose_w).torch[0, :3].clone()
         initial_position[:3] -= env.unwrapped.scene.env_origins[0]
 
         for _ in tqdm.tqdm(range(NUM_STEPS)):
@@ -168,7 +175,7 @@ def _test_object_moves_with_initial_velocity(simulation_app):
                 actions = torch.zeros(env.action_space.shape, device=env.unwrapped.device)
                 env.step(actions)
 
-        final_position = wp.to_torch(env.unwrapped.scene[sphere.name].data.root_pose_w)[0, :3].clone()
+        final_position = (env.unwrapped.scene[sphere.name].data.root_pose_w).torch[0, :3].clone()
         final_position[:3] -= env.unwrapped.scene.env_origins[0]
 
         print(f"Initial position: {initial_position}")

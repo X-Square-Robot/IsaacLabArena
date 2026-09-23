@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ARENA_ROOT="$(cd "$HOOK_DIR/.." && pwd)"
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+if ! command -v pre-commit >/dev/null 2>&1; then
+    echo "[ERROR] pre-commit not found in PATH." >&2
+    echo "        Activate the target environment and rerun setup_arena_local.sh." >&2
+    exit 1
+fi
+
+CONFIG_FILE="$REPO_ROOT/.pre-commit-config.yaml"
+if [[ -f "$CONFIG_FILE" ]]; then
+    cd "$REPO_ROOT"
+    exec pre-commit run --config "$CONFIG_FILE" --hook-stage pre-commit --show-diff-on-failure
+fi
+
+if [[ "$REPO_ROOT" != "$ARENA_ROOT" ]]; then
+    echo "[INFO] No repo-local .pre-commit-config.yaml found for $REPO_ROOT." >&2
+    echo "       Falling back to git diff --cached --check." >&2
+fi
+
+cd "$REPO_ROOT"
+exec git diff --cached --check

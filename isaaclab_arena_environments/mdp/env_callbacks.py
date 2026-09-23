@@ -42,8 +42,8 @@ def assembly_env_cfg_callback(env_cfg: IsaacLabArenaManagerBasedRLEnvCfg) -> Isa
         The modified environment configuration.
     """
     from isaaclab.sim import SimulationCfg
-    from isaaclab.sim.spawners.materials import RigidBodyMaterialCfg
     from isaaclab_physx.physics.physx_manager_cfg import PhysxCfg
+    from isaaclab_physx.sim.spawners.materials import PhysxRigidBodyMaterialCfg
 
     # Simulation settings optimized for assembly tasks
     env_cfg.sim = SimulationCfg(
@@ -60,7 +60,7 @@ def assembly_env_cfg_callback(env_cfg: IsaacLabArenaManagerBasedRLEnvCfg) -> Isa
             gpu_max_rigid_patch_count=2**23,
             gpu_max_num_partitions=1,  # Important for stable simulation
         ),
-        physics_material=RigidBodyMaterialCfg(
+        physics_material=PhysxRigidBodyMaterialCfg(
             static_friction=1.0,
             dynamic_friction=1.0,
         ),

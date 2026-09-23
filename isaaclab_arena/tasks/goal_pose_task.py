@@ -1,4 +1,4 @@
-# Copyright (c) 2025-2026, The Isaac Lab Arena Project Developers (https://github.com/isaac-sim/IsaacLab-Arena/blob/main/CONTRIBUTORS.md).
+# Copyright (c) 2026, The Isaac Lab Arena Project Developers (https://github.com/isaac-sim/IsaacLab-Arena/blob/main/CONTRIBUTORS.md).
 # All rights reserved.
 #
 # SPDX-License-Identifier: Apache-2.0
@@ -13,17 +13,15 @@ from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.utils.configclass import configclass
 
 from isaaclab_arena.assets.asset import Asset
-from isaaclab_arena.assets.register import register_task
 from isaaclab_arena.metrics.metric_base import MetricBase
 from isaaclab_arena.metrics.object_moved import ObjectMovedRateMetric
 from isaaclab_arena.metrics.success_rate import SuccessRateMetric
-from isaaclab_arena.tasks.task_base import TaskBase
+from isaaclab_arena.tasks.task_base import ManaTask
 from isaaclab_arena.tasks.terminations import goal_pose_task_termination
 from isaaclab_arena.utils.cameras import get_viewer_cfg_look_at_object
 
 
-@register_task
-class GoalPoseTask(TaskBase):
+class GoalPoseTask(ManaTask):
     def __init__(
         self,
         object: Asset,

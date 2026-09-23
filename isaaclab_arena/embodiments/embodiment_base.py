@@ -24,6 +24,8 @@ from isaaclab_arena.utils.pose import Pose, PosePerEnv, PoseRange
 if TYPE_CHECKING:
     import trimesh
 
+    from isaaclab_arena.environments.isaaclab_arena_manager_based_env_cfg import IsaacLabArenaManagerBasedRLEnvCfg
+
 
 @dataclass(frozen=True)
 class ArticulationGeometrySpec:
@@ -220,7 +222,7 @@ class EmbodimentBase(PlaceableAsset):
         return self.xr
 
     def get_teleop_target_frame_prim_path(self) -> str | None:
-        """Optional USD prim path for rebasing teleop poses (e.g. robot base link). Returns None if not set."""
+        """Optional USD prim path for rebasing teleop poses."""
 
     def get_camera_cfg(self) -> Any:
         if self.camera_config is None:
@@ -254,16 +256,46 @@ class EmbodimentBase(PlaceableAsset):
     def get_termination_cfg(self) -> Any:
         return self.termination_cfg
 
+    def modify_env_cfg(self, env_cfg: IsaacLabArenaManagerBasedRLEnvCfg) -> IsaacLabArenaManagerBasedRLEnvCfg:
+        return env_cfg
+
     def get_scene_key(self) -> str:
         """Return the embodiment's Isaac Lab scene key."""
         return "robot"
 
-    def get_ee_frame_name(self, arm_mode: ArmMode) -> str:
-        # In case of multiple ee frames one can use self.mimic_arm_mode to get the correct ee frame name
+    def get_embodiment_name_in_scene(self) -> str:
+        """Return the scene key used for the embodiment (legacy compatibility alias)."""
+        return self.get_scene_key()
+
+    def get_ee_frame_name(self, arm_mode: ArmMode | str | None = None) -> str:
+        del arm_mode
         return ""
+
+    def get_ee_frame_names(self, arm_mode: ArmMode | str | None = None) -> list[str]:
+        frame_name = self.get_ee_frame_name(arm_mode or self.get_arm_mode())
+        return [frame_name] if frame_name else []
 
     def get_command_body_name(self) -> str:
         return ""
 
-    def get_arm_mode(self) -> ArmMode:
+    def get_command_body_names(self, arm_mode: ArmMode | str | None = None) -> list[str]:
+        del arm_mode
+        body_name = self.get_command_body_name()
+        return [body_name] if body_name else []
+
+    def get_arm_mode(self) -> ArmMode | None:
         return self.arm_mode
+
+    def get_ee_contact_sensor_names(self, arm_mode: ArmMode | str | None = None) -> list[str]:
+        del arm_mode
+        return []
+
+    def get_ee_contact_prim_paths(self, arm_mode: ArmMode | str | None = None) -> list[str]:
+        scene_cfg = self.scene_config
+        prim_paths: list[str] = []
+        for sensor_name in self.get_ee_contact_sensor_names(arm_mode):
+            sensor_cfg = getattr(scene_cfg, sensor_name, None)
+            prim_path = getattr(sensor_cfg, "prim_path", None)
+            if prim_path:
+                prim_paths.append(prim_path)
+        return prim_paths

@@ -336,7 +336,7 @@ def _test_reference_objects_with_background_pose(background_pose: Pose, tmp_path
     from isaaclab_arena.environments.arena_env_builder import ArenaEnvBuilder
     from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
     from isaaclab_arena.scene.scene import Scene
-    from isaaclab_arena.tasks.pick_and_place_task import PickAndPlaceTask
+    from isaaclab_arena.tasks.pick_and_place_task import PickAndPlaceTask, PickAndPlaceTaskCFG
 
     args_parser = get_isaaclab_arena_cli_parser()
     args_cli = args_parser.parse_args([])
@@ -376,11 +376,19 @@ def _test_reference_objects_with_background_pose(background_pose: Pose, tmp_path
     scene = Scene(assets=[background, cracker_box, microwave])
 
     # Build the environment
+    task = PickAndPlaceTask(
+        PickAndPlaceTaskCFG(
+            pick_up_object=cracker_box,
+            destination_location=destination_location,
+            background_scene=background,
+        )
+    )
+
     isaaclab_arena_environment = IsaacLabArenaEnvironment(
         name="reference_object_test",
         embodiment=embodiment,
         scene=scene,
-        task=PickAndPlaceTask(cracker_box, destination_location, background),
+        task=task,
         teleop_device=None,
     )
     args_cli = get_isaaclab_arena_cli_parser().parse_args([])

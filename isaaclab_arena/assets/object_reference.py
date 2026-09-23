@@ -30,6 +30,14 @@ class ObjectReference(ObjectBase):
     def __init__(self, parent_asset: Object, **kwargs):
         super().__init__(**kwargs)
         self.parent_asset = parent_asset
+        # Rewrite legacy ``{ENV_REGEX_NS}/<parent_name>/...`` paths onto the
+        # parent's actual (prefixed) anchor — see ``asset_anchor_path``.
+        legacy_parent_root = "{ENV_REGEX_NS}/" + parent_asset.name
+        parent_root = parent_asset.prim_path
+        if parent_root != legacy_parent_root and (
+            self.prim_path == legacy_parent_root or self.prim_path.startswith(legacy_parent_root + "/")
+        ):
+            self.prim_path = parent_root + self.prim_path.removeprefix(legacy_parent_root)
         self._parent_scale = parent_asset.scale
         # Resolve the path and pose together to avoid opening the parent USD stage multiple times.
         (
@@ -221,12 +229,15 @@ class ObjectReference(ObjectBase):
         # Check that the path starts with the ENV_REGEX_NS prefix.
         assert isaaclab_prim_path.startswith("{ENV_REGEX_NS}/")
         original_prim_path = isaaclab_prim_path.removeprefix("{ENV_REGEX_NS}/")
-        # Check that the path starts with the asset name.
-        assert original_prim_path.startswith(parent_asset.name), (
-            "Expected the prim path to start with the parent asset name {parent_asset.name}. Instead got"
-            " {original_prim_path}"
+        # The parent's anchor may carry the asset anchor prefix — derive the
+        # leaf from its actual prim path, not its bare name.
+        parent_anchor = getattr(parent_asset, "prim_path", "{ENV_REGEX_NS}/" + parent_asset.name)
+        parent_anchor_leaf = parent_anchor.removeprefix("{ENV_REGEX_NS}/")
+        assert original_prim_path.startswith(parent_anchor_leaf), (
+            f"Expected the prim path to start with the parent asset anchor {parent_anchor_leaf}. Instead got"
+            f" {original_prim_path}"
         )
-        original_prim_path = original_prim_path.removeprefix(parent_asset.name)
+        original_prim_path = original_prim_path.removeprefix(parent_anchor_leaf)
         # Append the default prim path.
         original_prim_path = str(default_prim_path) + original_prim_path
         return original_prim_path

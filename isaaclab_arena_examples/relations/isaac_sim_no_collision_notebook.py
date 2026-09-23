@@ -116,7 +116,9 @@ def run_isaac_sim_no_collision_demo(
         root_pose[:, :3] += env.unwrapped.scene.env_origins[env_ids]
         for obj in placeable_objects:
             if obj.name in env.unwrapped.scene.rigid_objects:
-                env.unwrapped.scene.rigid_objects[obj.name].write_root_pose_to_sim(root_pose.clone(), env_ids=env_ids)
+                env.unwrapped.scene.rigid_objects[obj.name].write_root_pose_to_sim_index(
+                    root_pose=root_pose.clone(), env_ids=env_ids
+                )
             else:
                 print(
                     f"\nObject {obj.name!r} is not in scene.rigid_objects, skipping application of the initial"
@@ -146,7 +148,9 @@ def run_isaac_sim_no_collision_demo(
                 .expand(num_envs, 7)
             )
             root_pose[:, :3] += env.unwrapped.scene.env_origins[env_ids]
-            env.unwrapped.scene.rigid_objects[obj.name].write_root_pose_to_sim(root_pose, env_ids=env_ids)
+            env.unwrapped.scene.rigid_objects[obj.name].write_root_pose_to_sim_index(
+                root_pose=root_pose, env_ids=env_ids
+            )
         env.unwrapped.scene.write_data_to_sim()
         env.unwrapped.sim.step(render=True)
         env.unwrapped.scene.update(dt=env.unwrapped.physics_dt)

@@ -29,7 +29,7 @@ The environment is defined in
           def get_env(self, args_cli: argparse.Namespace):
               import math
 
-              import isaaclab_tasks.manager_based.manipulation.dexsuite  # noqa: F401
+              import isaaclab_tasks.core.lift  # noqa: F401
 
               from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
               from isaaclab_arena.scene.scene import Scene
@@ -58,8 +58,8 @@ The environment is defined in
               task = DexsuiteLiftTask(lift_object=manip_object, background_scene=dexsuite_table)
 
               dexsuite_rl_cfg_entry = (
-                  "isaaclab_tasks.manager_based.manipulation.dexsuite.config.kuka_allegro.agents."
-                  "rsl_rl_ppo_cfg:DexsuiteKukaAllegroPPORunnerCfg"
+                  "isaaclab_tasks.core.lift.config.kuka_allegro.agents."
+                  "rsl_rl_ppo_cfg:KukaAllegroPPORunnerCfg"
               )
 
               return IsaacLabArenaEnvironment(

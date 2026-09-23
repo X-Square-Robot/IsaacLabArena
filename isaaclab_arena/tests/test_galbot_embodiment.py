@@ -7,8 +7,6 @@ import numpy as np
 import torch
 import tqdm
 
-import warp as wp
-
 from isaaclab_arena.tests.utils.persistent_simulation_app import run_function_with_persistent_simulation_app
 
 NUM_STEPS = 10
@@ -90,7 +88,7 @@ def _test_galbot_initial_position(simulation_app) -> bool:
                 env.step(actions)
 
         # Check the robot ended up at the correct position
-        robot_position = wp.to_torch(env.unwrapped.scene["robot"].data.root_link_pose_w)[0, :3].cpu().numpy()
+        robot_position = (env.unwrapped.scene["robot"].data.root_link_pose_w).torch[0, :3].cpu().numpy()
         robot_position_error = np.linalg.norm(robot_position - np.array(robot_init_position))
         print(f"Robot position error: {robot_position_error}")
         assert robot_position_error < INITIAL_POSITION_EPS, "Galbot ended up at the wrong position."
@@ -157,13 +155,13 @@ def _test_galbot_observation_config(simulation_app) -> bool:
             assert robot_data is not None, "Robot data should be accessible"
 
             # Check joint positions are valid
-            joint_pos = wp.to_torch(robot_data.joint_pos)
+            joint_pos = (robot_data.joint_pos).torch
             print(f"Joint positions shape: {joint_pos.shape}")
             assert joint_pos is not None, "Joint positions should be accessible"
             assert not torch.any(torch.isnan(joint_pos)), "Joint positions should not contain NaN"
 
             # Check joint velocities are valid
-            joint_vel = wp.to_torch(robot_data.joint_vel)
+            joint_vel = (robot_data.joint_vel).torch
             print(f"Joint velocities shape: {joint_vel.shape}")
             assert joint_vel is not None, "Joint velocities should be accessible"
             assert not torch.any(torch.isnan(joint_vel)), "Joint velocities should not contain NaN"
@@ -220,7 +218,7 @@ def _test_galbot_arm_reaches_goal(simulation_app) -> bool:
             ee_frame = env.unwrapped.scene["ee_frame"]
 
             # Get initial ee position (in world frame, relative to env origin)
-            initial_ee_pos = wp.to_torch(ee_frame.data.target_pos_w)[0, 0, :] - env.unwrapped.scene.env_origins[0]
+            initial_ee_pos = (ee_frame.data.target_pos_w).torch[0, 0, :] - env.unwrapped.scene.env_origins[0]
             print(f"Initial EE position: {initial_ee_pos.cpu().numpy()}")
             print(f"Target position: {target_position.cpu().numpy()}")
 
@@ -229,7 +227,7 @@ def _test_galbot_arm_reaches_goal(simulation_app) -> bool:
             num_reach_steps = 200
             for step in range(num_reach_steps):
                 # Get current ee position
-                current_ee_pos = wp.to_torch(ee_frame.data.target_pos_w)[0, 0, :] - env.unwrapped.scene.env_origins[0]
+                current_ee_pos = (ee_frame.data.target_pos_w).torch[0, 0, :] - env.unwrapped.scene.env_origins[0]
                 remaining_displacement = target_position - current_ee_pos
 
                 # Proportional control: move a fraction of the remaining distance
@@ -246,7 +244,7 @@ def _test_galbot_arm_reaches_goal(simulation_app) -> bool:
                 env.step(action)
 
             # Get final ee position
-            final_ee_pos = wp.to_torch(ee_frame.data.target_pos_w)[0, 0, :] - env.unwrapped.scene.env_origins[0]
+            final_ee_pos = (ee_frame.data.target_pos_w).torch[0, 0, :] - env.unwrapped.scene.env_origins[0]
             position_error = torch.norm(final_ee_pos - target_position).item()
 
             print(f"Final EE position: {final_ee_pos.cpu().numpy()}")

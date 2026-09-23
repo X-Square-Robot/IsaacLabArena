@@ -3,7 +3,10 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+import asyncio
+import importlib
 import random
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from isaaclab_arena.utils.singleton import SingletonMeta
@@ -19,6 +22,7 @@ if TYPE_CHECKING:
     from isaaclab_arena.policy.policy_base import PolicyBase, PolicyCfg
     from isaaclab_arena.relations.relations import RelationBase
     from isaaclab_arena.tasks.task_base import TaskBase
+    from isaaclab_arena.utils.pose import Pose
 
 
 # Have to define all classes here in order to avoid circular import.
@@ -60,7 +64,7 @@ class Registry(metaclass=SingletonMeta):
                 segfaults, because those packages must be imported only after it starts.
         """
         if ensure_loaded and isinstance(self, REGISTRIES):
-            ensure_assets_registered()
+            ensure_registry_registered(type(self))
         return key in self._components
 
     def get_component_by_name(self, key: str) -> Any:
@@ -73,7 +77,7 @@ class Registry(metaclass=SingletonMeta):
             Any: The component.
         """
         if isinstance(self, REGISTRIES):
-            ensure_assets_registered()
+            ensure_registry_registered(type(self))
         assert key in self._components, f"component {key} not found, please check if requested component is registered"
         return self._components[key]
 
@@ -84,7 +88,7 @@ class Registry(metaclass=SingletonMeta):
             list[str]: The list of keys.
         """
         if isinstance(self, REGISTRIES):
-            ensure_assets_registered()
+            ensure_registry_registered(type(self))
         return list(self._components.keys())
 
 
@@ -96,23 +100,48 @@ class AssetRegistry(Registry):
     def get_asset_by_name(self, name: str) -> type["Asset"]:
         """Gets an asset by name.
 
+        Falls back to a SimReady Explorer lookup when the name is not in the
+        registry: if a SimReady asset matches, a builder callable constructing a
+        ``GeneralSimreadyAsset`` is returned. Note that ``is_registered()`` keeps
+        answering ``False`` for such names. If neither lookup matches, the usual
+        "component not found" assertion from the registry is raised.
+
         Args:
             name (str): The name of the asset.
         """
-        ensure_assets_registered()
-        return self.get_component_by_name(name)
+        ensure_asset_providers_registered(include_embodiments=False)
+        if name not in self._components:
+            ensure_asset_providers_registered(include_embodiments=True)
+        if name not in self._components:
+            builder = self._try_get_simready_asset_builder(name)
+            if builder is not None:
+                return builder
+        assert (
+            name in self._components
+        ), f"component {name} not found, please check if requested component is registered"
+        return self._components[name]
 
-    def get_assets_by_tag(self, tag: str) -> list[type["Asset"]]:
-        """Gets a list of assets by tag.
+    def get_assets_by_tag(self, tag: str | list[str]) -> list[type["Asset"]]:
+        """Gets a list of assets matching the given tag(s).
+
+        When *tag* is a single string it may contain comma-separated values
+        (e.g. ``"glasses,rigid"``). When a list is passed each element is one
+        required tag. An asset must have **all** requested tags to be included
+        in the result.
 
         Args:
-            tag (str): The tag of the assets.
+            tag: One tag, a comma-separated string, or a list of tags.
 
         Returns:
-            list[Asset]: The list of assets.
+            list[Asset]: The list of matching assets.
         """
-        ensure_assets_registered()
-        return [asset for asset in self._components.values() if tag in asset.tags]
+        ensure_asset_providers_registered(include_embodiments=True)
+        if isinstance(tag, str):
+            required = {t.strip() for t in tag.split(",")}
+        else:
+            required = set(tag)
+        required.discard("")
+        return [asset for asset in self._components.values() if asset.tags and required.issubset(asset.tags)]
 
     def get_assets_with_all_tags(self, tags: list[str]) -> list[str]:
         """Return asset names whose ``tags`` include every tag in ``tags``.
@@ -125,23 +154,73 @@ class AssetRegistry(Registry):
             Sorted asset names matching every tag, or all asset names when
             ``tags`` is empty.
         """
-        ensure_assets_registered()
+        ensure_asset_providers_registered(include_embodiments=True)
         return sorted(asset.name for asset in self._components.values() if all(tag in asset.tags for tag in tags))
 
     def get_random_asset_by_tag(self, tag: str) -> type["Asset"]:
         """Gets a random asset which has the given tag.
 
         Args:
-            tag (str): The tag of the assets.
+            tag: One tag, a comma-separated string, or a list of tags.
 
         Returns:
             Asset: The random asset.
         """
-        ensure_assets_registered()
+        ensure_asset_providers_registered(include_embodiments=True)
         assets = self.get_assets_by_tag(tag)
         if len(assets) == 0:
             raise ValueError(f"No assets found with tag {tag}")
         return random.choice(assets)
+
+    def _try_get_simready_asset_builder(self, name: str) -> Callable[..., Any] | None:
+        """Try to resolve ``name`` against the SimReady Explorer asset database.
+
+        Lazily enables the ``omni.simready.explorer`` extension (and its browser
+        model) on first use, then runs an asynchronous asset search, pumping the
+        Kit update loop until it completes.
+
+        Args:
+            name (str): The asset name to search for.
+
+        Returns:
+            A builder callable creating a ``GeneralSimreadyAsset`` for the first
+            matching SimReady asset, or ``None`` if the name is empty or no
+            SimReady asset matches.
+        """
+        if not name:
+            return None
+        import omni.kit.app
+
+        app = omni.kit.app.get_app()
+        ext_manager = app.get_extension_manager()
+        if not ext_manager.is_extension_enabled("omni.simready.explorer"):
+            ext_manager.set_extension_enabled_immediate("omni.simready.explorer", True)
+
+        import omni.simready.explorer as sre
+
+        if sre.get_instance().browser_model is None:
+            import omni.kit.actions.core as actions
+
+            actions.execute_action("omni.simready.explorer", "toggle_window")
+
+        from isaaclab_arena.assets.simready_asset import GeneralSimreadyAsset
+
+        search_task = asyncio.ensure_future(sre.find_assets(search_words=[name]))
+        while not search_task.done():
+            app.update()
+        assets = search_task.result()
+        if not assets:
+            return None
+
+        def builder(prim_path: str | None = None, initial_pose: "Pose | None" = None, **kwargs):
+            return GeneralSimreadyAsset(
+                assets[0],
+                prim_path=prim_path,
+                initial_pose=initial_pose,
+                **kwargs,
+            )
+
+        return builder
 
 
 class DeviceRegistry(Registry):
@@ -155,7 +234,7 @@ class DeviceRegistry(Registry):
         Args:
             name (str): The name of the device.
         """
-        ensure_assets_registered()
+        ensure_registry_registered(DeviceRegistry)
         return self.get_component_by_name(name)
 
     def get_teleop_device_cfg(
@@ -218,7 +297,7 @@ class PolicyRegistry(Registry):
         Args:
             name (str): The name of the policy.
         """
-        ensure_assets_registered()
+        ensure_registry_registered(PolicyRegistry)
         return self.get_component_by_name(name)
 
 
@@ -234,7 +313,7 @@ class HDRImageRegistry(Registry):
         Args:
             name (str): The name of the HDRImage.
         """
-        ensure_assets_registered()
+        ensure_registry_registered(HDRImageRegistry)
         return self.get_component_by_name(name)
 
     def get_hdrs_by_tag(self, tag: str) -> list[type["HDRImage"]]:
@@ -246,7 +325,7 @@ class HDRImageRegistry(Registry):
         Returns:
             list[type[HDRImage]]: The matching HDRImage classes.
         """
-        ensure_assets_registered()
+        ensure_registry_registered(HDRImageRegistry)
         return [hdr for hdr in self._components.values() if tag in hdr.tags]
 
     def get_random_hdr_by_tag(self, tag: str) -> type["HDRImage"]:
@@ -258,7 +337,7 @@ class HDRImageRegistry(Registry):
         Returns:
             type[HDRImage]: A random HDRImage class.
         """
-        ensure_assets_registered()
+        ensure_registry_registered(HDRImageRegistry)
         hdrs = self.get_hdrs_by_tag(tag)
         if len(hdrs) == 0:
             raise ValueError(f"No HDRs found with tag {tag}")
@@ -322,7 +401,7 @@ class ObjectRelationLibraryRegistry(Registry):
         Args:
             name (str): The name of the object relation.
         """
-        ensure_assets_registered()
+        ensure_registry_registered(ObjectRelationLibraryRegistry)
         return self.get_component_by_name(name)
 
 
@@ -338,7 +417,7 @@ class TaskRegistry(Registry):
         Args:
             name (str): The name of the task class (typically the class __name__).
         """
-        ensure_assets_registered()
+        ensure_registry_registered(TaskRegistry)
         return self.get_component_by_name(name)
 
 
@@ -355,32 +434,96 @@ REGISTRIES = (
 )
 
 
-# Lazy registration to avoid circular imports
+# Lazy registration to avoid circular imports. Registration is tracked per
+# registry type so scene/robot asset lookup does not import optional policy
+# dependencies such as RSL-RL. ``ensure_assets_registered()`` remains as the
+# compatibility full-load entrypoint for callers that intentionally need every
+# registry populated.
+_SCENE_ASSET_IMPORTS = (
+    "isaaclab_arena.assets.background_library",
+    "isaaclab_arena.assets.object_library",
+    "isaaclab_arena.assets.simready_object_library",
+)
+_EMBODIMENT_ASSET_IMPORTS = ("isaaclab_arena.embodiments",)
+
+_REGISTRY_IMPORTS: dict[type[Registry], tuple[str, ...]] = {
+    AssetRegistry: (*_SCENE_ASSET_IMPORTS, *_EMBODIMENT_ASSET_IMPORTS),
+    DeviceRegistry: ("isaaclab_arena.assets.device_library",),
+    RetargeterRegistry: ("isaaclab_arena.assets.retargeter_library",),
+    PolicyRegistry: ("isaaclab_arena.policy",),
+    HDRImageRegistry: ("isaaclab_arena.assets.hdr_image_library",),
+    ObjectRelationLibraryRegistry: ("isaaclab_arena.relations.relations",),
+    TaskRegistry: ("isaaclab_arena.tasks.task_library",),
+}
+
+_registered_registries: set[type[Registry]] = set()
+_registered_asset_provider_groups: set[str] = set()
+# Blocks re-entry: registration decorators call is_registered() while a provider
+# module is importing. A re-entrant full load can import partially initialized
+# modules and trigger circular imports.
+_registry_registration_in_progress: set[type[Registry]] = set()
+_asset_provider_registration_in_progress: set[str] = set()
+
+# Backward-compatible aliases kept for tests/external callers that reset the old
+# module-level flags directly.
 _assets_registered = False
-# Blocks re-entry: registration decorators call is_registered() -> ensure_assets_registered()
-# mid-import, which would re-import a partial module and raise a circular ImportError.
 _registration_in_progress = False
 
 
-def ensure_assets_registered():
-    """Ensure all assets are registered. Call this before accessing the registry."""
+def _refresh_registration_flags():
     global _assets_registered, _registration_in_progress
-    if _assets_registered or _registration_in_progress:
-        return
-    _registration_in_progress = True
-    try:
-        # Import modules to trigger asset registration via decorators
-        import isaaclab_arena.assets.background_library  # noqa: F401
-        import isaaclab_arena.assets.device_library  # noqa: F401
-        import isaaclab_arena.assets.hdr_image_library  # noqa: F401
-        import isaaclab_arena.assets.object_library  # noqa: F401
-        import isaaclab_arena.assets.retargeter_library  # noqa: F401
-        import isaaclab_arena.assets.simready_object_library  # noqa: F401
-        import isaaclab_arena.embodiments  # noqa: F401
-        import isaaclab_arena.policy  # noqa: F401
-        import isaaclab_arena.relations.relations  # noqa: F401
-        import isaaclab_arena.tasks.task_library  # noqa: F401
+    _registered_asset_registry = {"scene", "embodiment"}.issubset(_registered_asset_provider_groups)
+    if _registered_asset_registry:
+        _registered_registries.add(AssetRegistry)
+    _assets_registered = all(registry in _registered_registries for registry in REGISTRIES)
+    _registration_in_progress = bool(_registry_registration_in_progress or _asset_provider_registration_in_progress)
 
-        _assets_registered = True
+
+def _import_provider_group(group_name: str, module_names: tuple[str, ...]):
+    if group_name in _registered_asset_provider_groups or group_name in _asset_provider_registration_in_progress:
+        return
+    _asset_provider_registration_in_progress.add(group_name)
+    _refresh_registration_flags()
+    try:
+        for module_name in module_names:
+            importlib.import_module(module_name)
+        _registered_asset_provider_groups.add(group_name)
     finally:
-        _registration_in_progress = False
+        _asset_provider_registration_in_progress.discard(group_name)
+        _refresh_registration_flags()
+
+
+def ensure_asset_providers_registered(include_embodiments: bool = True):
+    """Ensure asset providers are imported, optionally skipping robot embodiments."""
+    _import_provider_group("scene", _SCENE_ASSET_IMPORTS)
+    if include_embodiments:
+        _import_provider_group("embodiment", _EMBODIMENT_ASSET_IMPORTS)
+
+
+def ensure_registry_registered(registry_type: type[Registry]):
+    """Ensure provider modules for one registry type are imported."""
+    if registry_type is AssetRegistry:
+        ensure_asset_providers_registered(include_embodiments=True)
+        return
+    if registry_type in _registered_registries or registry_type in _registry_registration_in_progress:
+        return
+    _registry_registration_in_progress.add(registry_type)
+    _refresh_registration_flags()
+    try:
+        for module_name in _REGISTRY_IMPORTS[registry_type]:
+            importlib.import_module(module_name)
+        _registered_registries.add(registry_type)
+    finally:
+        _registry_registration_in_progress.discard(registry_type)
+        _refresh_registration_flags()
+
+
+def ensure_assets_registered():
+    """Ensure all Arena registries are registered.
+
+    Prefer registry-specific public methods for normal lookups. This full-load
+    compatibility helper intentionally imports every registry provider, including
+    optional policy providers.
+    """
+    for registry_type in REGISTRIES:
+        ensure_registry_registered(registry_type)

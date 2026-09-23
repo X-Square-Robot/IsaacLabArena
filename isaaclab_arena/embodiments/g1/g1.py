@@ -11,8 +11,7 @@ from dataclasses import MISSING
 import isaaclab.envs.mdp as base_mdp
 import isaaclab.sim as sim_utils  # noqa: F401
 import isaaclab.utils.math as PoseUtils
-import isaaclab_tasks.manager_based.manipulation.pick_place.mdp as mdp
-import warp as wp
+import isaaclab_tasks.contrib.pick_place.mdp as mdp
 from isaaclab.actuators import IdealPDActuatorCfg
 from isaaclab.assets.articulation.articulation_cfg import ArticulationCfg
 from isaaclab.envs import ManagerBasedRLMimicEnv  # noqa: F401
@@ -24,6 +23,7 @@ from isaaclab.managers.action_manager import ActionTermCfg
 from isaaclab.sensors import CameraCfg
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.utils.configclass import configclass
+from isaaclab_physx.sim.schemas import PhysxArticulationRootPropertiesCfg, PhysxRigidBodyPropertiesCfg
 from isaaclab_teleop import XrCfg
 from isaaclab_teleop.xr_cfg import XrAnchorRotationMode
 
@@ -220,7 +220,7 @@ G1_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
         usd_path=f"{ISAAC_NUCLEUS_DIR}/Samples/Groot/Robots/g1_29dof_with_hand_rev_1_0.usd",
         activate_contact_sensors=True,
-        rigid_props=sim_utils.RigidBodyPropertiesCfg(
+        rigid_props=PhysxRigidBodyPropertiesCfg(
             disable_gravity=False,
             retain_accelerations=False,
             linear_damping=0.0,
@@ -231,7 +231,7 @@ G1_CFG = ArticulationCfg(
             solver_position_iteration_count=4,
             solver_velocity_iteration_count=0,
         ),
-        articulation_props=sim_utils.ArticulationRootPropertiesCfg(
+        articulation_props=PhysxArticulationRootPropertiesCfg(
             enabled_self_collisions=False, solver_position_iteration_count=4, solver_velocity_iteration_count=0
         ),
     ),
@@ -950,7 +950,7 @@ class G1MimicEnv(ManagerBasedRLMimicEnv):
             env_ids = slice(None)
 
         # Get pelvis inverse transform to convert from world to pelvis frame
-        pelvis_pose_w = wp.to_torch(self.scene["robot"].data.body_link_state_w)[
+        pelvis_pose_w = (self.scene["robot"].data.body_link_state_w).torch[
             :, self.scene["robot"].data.body_names.index("pelvis"), :
         ]
         pelvis_position_w = pelvis_pose_w[:, :3] - self.scene.env_origins

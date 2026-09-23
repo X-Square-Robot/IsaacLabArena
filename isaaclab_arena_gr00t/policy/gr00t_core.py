@@ -25,6 +25,7 @@ from __future__ import annotations
 import numpy as np
 import torch
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from isaaclab_arena.policy.policy_base import PolicyCfg
@@ -63,6 +64,40 @@ class Gr00tBasePolicyCfg(PolicyCfg):
 # --------------------------------------------------------------------------- #
 # Config, model, and joint helpers (backend-agnostic)
 # --------------------------------------------------------------------------- #
+
+
+def load_gr00t_policy_from_config(policy_config: Gr00tClosedloopPolicyCfg) -> Gr00tPolicy:  # noqa: F821
+    """Instantiate a local in-process GR00T policy from the closed-loop config.
+
+    Imports the ``gr00t`` package lazily so this module stays importable in
+    environments that only use the remote policy client.
+
+    Args:
+        policy_config: Loaded closed-loop config (model path, embodiment, device).
+
+    Returns:
+        Loaded ``Gr00tPolicy`` on the configured device.
+
+    Raises:
+        AssertionError: If ``policy_config.model_path`` is unset, or neither an
+            existing local path nor a HuggingFace model id.
+    """
+    from gr00t.data.embodiment_tags import EmbodimentTag
+    from gr00t.policy.gr00t_policy import Gr00tPolicy
+
+    model_path = policy_config.model_path
+    assert model_path, "policy_config.model_path must be set for local in-process GR00T inference"
+    # HuggingFace Hub repo IDs use "owner/repo" format (e.g. "nvidia/GR00T-N1.6-DROID").
+    is_hf_id = bool("/" in model_path and not model_path.startswith(("/", ".")))
+    assert (
+        Path(model_path).exists() or is_hf_id
+    ), f"Model path {model_path} does not exist and is not a HuggingFace model id"
+    return Gr00tPolicy(
+        model_path=policy_config.model_path,
+        embodiment_tag=EmbodimentTag[policy_config.embodiment_tag],
+        device=policy_config.policy_device,
+        strict=True,
+    )
 
 
 def load_gr00t_joint_configs(

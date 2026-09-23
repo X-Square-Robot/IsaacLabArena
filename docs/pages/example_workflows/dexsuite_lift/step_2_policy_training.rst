@@ -32,7 +32,7 @@ training script:
 switches the manipulation object to a single-geometry cube (Newton does not
 support multi-asset spawning used by the default ``shapes`` preset).
 
-This uses the ``DexsuiteKukaAllegroPPORunnerCfg`` configuration defined in
+This uses the ``KukaAllegroPPORunnerCfg`` configuration defined in
 Isaac Lab, which provides:
 
 - **Actor/Critic**: MLP [512, 256, 128], ELU activation, observation normalization enabled
@@ -43,7 +43,7 @@ Isaac Lab, which provides:
 - **Physics**: Newton (MuJoCo-Warp solver) when ``presets=newton`` is used
 
 Checkpoints are saved every 250 iterations to
-``logs/rsl_rl/dexsuite_kuka_allegro/<timestamp>/``.
+``logs/rsl_rl/lift_kuka_allegro/<timestamp>/``.
 
 .. tip::
 
@@ -82,7 +82,7 @@ are used automatically.
      --checkpoint model_5000.pt \
      presets=newton presets=cube
 
-Replace ``<timestamp>`` with the run folder name under ``logs/rsl_rl/dexsuite_kuka_allegro/``.
+Replace ``<timestamp>`` with the run folder name under ``logs/rsl_rl/lift_kuka_allegro/``.
 If ``--load_run`` is omitted, the latest run is selected. If ``--checkpoint`` is omitted,
 the latest checkpoint in that run is loaded.
 

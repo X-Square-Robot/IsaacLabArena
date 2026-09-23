@@ -7,8 +7,6 @@ import torch
 import tqdm
 import traceback
 
-import pytest
-
 from isaaclab_arena.tests.utils.persistent_simulation_app import run_function_with_persistent_simulation_app
 
 HEADLESS = True
@@ -21,7 +19,6 @@ def _test_detect_object_type(simulation_app):
 
     from isaaclab_arena.assets.object_base import ObjectType
     from isaaclab_arena.assets.object_utils import detect_object_type
-    from isaaclab_arena.tests.utils.usd_stages import add_body, new_stage
 
     # ObjectType.BASE
     print("Detecting ObjectType.BASE")
@@ -48,26 +45,15 @@ def _test_detect_object_type(simulation_app):
     stage.DefinePrim("/articulation_root/child_2", "Xform")
     assert detect_object_type(stage=stage) == ObjectType.ARTICULATION
 
-    # Expect FAIL - side by side rigid bodies, whatever holds them together
-    print("Expect Fail: Detecting several rigid bodies at the same depth")
-    stage = new_stage()
-    add_body(stage, "body_01")
-    add_body(stage, "body_02")
-    with pytest.raises(ValueError) as exception_info:
-        detect_object_type(stage=stage)
-    assert "Found multiple rigid body or articulation roots at depth" in str(exception_info.value)
-
-    # Expect FAIL - multiple object types at the same depth
-    print("Expect Fail: Detecting multiple object types at the same depth")
-    with pytest.raises(ValueError) as exception_info:
-        stage = Usd.Stage.CreateInMemory()
-        prim = stage.DefinePrim("/rigid_body", "Xform")
-        prim.ApplyAPI(UsdPhysics.RigidBodyAPI)
-        prim = stage.DefinePrim("/articulation_root", "Xform")
-        prim.ApplyAPI(UsdPhysics.ArticulationRootAPI)
-        # Should raise an error
-        detect_object_type(stage=stage)
-    assert "Found multiple rigid body or articulation roots at depth" in str(exception_info.value)
+    # Multiple object types at the same depth: ArticulationRootAPI takes
+    # priority over RigidBodyAPI.
+    print("Detecting multiple object types at the same depth (articulation priority)")
+    stage = Usd.Stage.CreateInMemory()
+    prim = stage.DefinePrim("/rigid_body", "Xform")
+    prim.ApplyAPI(UsdPhysics.RigidBodyAPI)
+    prim = stage.DefinePrim("/articulation_root", "Xform")
+    prim.ApplyAPI(UsdPhysics.ArticulationRootAPI)
+    assert detect_object_type(stage=stage) == ObjectType.ARTICULATION
     return True
 
 
@@ -106,7 +92,7 @@ def _test_auto_object_type(simulation_app):
     from isaaclab_arena.environments.arena_env_builder import ArenaEnvBuilder
     from isaaclab_arena.environments.isaaclab_arena_environment import IsaacLabArenaEnvironment
     from isaaclab_arena.scene.scene import Scene
-    from isaaclab_arena.tasks.pick_and_place_task import PickAndPlaceTask
+    from isaaclab_arena.tasks.pick_and_place_task import PickAndPlaceTask, PickAndPlaceTaskCFG
 
     asset_registry = AssetRegistry()
 
@@ -130,13 +116,21 @@ def _test_auto_object_type(simulation_app):
         )
 
         scene = Scene(assets=[background, cracker_box, microwave])
+        task = PickAndPlaceTask(
+            PickAndPlaceTaskCFG(
+                pick_up_object=cracker_box,
+                destination_location=cracker_box,
+                background_scene=background,
+            )
+        )
+
         isaaclab_arena_environment = IsaacLabArenaEnvironment(
             name="auto_object_type_test",
             embodiment=embodiment,
             scene=scene,
             # NOTE(alexmillane, 2025-09-16): We use the pick and place task to ensure
             # that we can use an auto-detected ridid-object in a task.
-            task=PickAndPlaceTask(cracker_box, cracker_box, background),
+            task=task,
         )
 
         args_cli = get_isaaclab_arena_cli_parser().parse_args([])

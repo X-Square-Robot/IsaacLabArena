@@ -12,16 +12,13 @@ from isaaclab.managers import EventTermCfg, TerminationTermCfg
 from isaaclab.utils.configclass import configclass
 
 from isaaclab_arena.affordances.turnable import Turnable
-from isaaclab_arena.assets.register import register_task
-from isaaclab_arena.embodiments.common.arm_mode import ArmMode
 from isaaclab_arena.metrics.metric_base import MetricBase
 from isaaclab_arena.metrics.success_rate import SuccessRateMetric
-from isaaclab_arena.tasks.task_base import TaskBase
+from isaaclab_arena.tasks.task_base import ManaTask
 from isaaclab_arena.utils.cameras import get_viewer_cfg_look_at_object
 
 
-@register_task
-class TurnKnobTask(TaskBase):
+class TurnKnobTask(ManaTask):
     def __init__(
         self,
         turnable_object: Turnable,
@@ -31,7 +28,6 @@ class TurnKnobTask(TaskBase):
         task_description: str | None = None,
     ):
         super().__init__(episode_length_s=episode_length_s)
-
         assert isinstance(turnable_object, Turnable), "Object must be an instance of Turnable"
         self.turnable_object = turnable_object
         self.target_level = target_level
@@ -71,13 +67,10 @@ class TurnKnobTask(TaskBase):
         )
 
     def get_metrics(self) -> list[MetricBase]:
-        # TODO(xinjieyao, 2026.01.05): Add turning level tracking metrics for the task.
-        return [
-            SuccessRateMetric(),
-        ]
+        return [SuccessRateMetric()]
 
-    def get_mimic_env_cfg(self, arm_mode: ArmMode):
-        raise NotImplementedError("Function not implemented yet.")
+    def get_mimic_env_cfg(self, embodiment_name: str):
+        raise NotImplementedError("Function get_mimic_env_cfg not implemented yet.")
 
 
 @configclass
@@ -85,9 +78,6 @@ class TerminationsCfg:
     """Termination terms for the MDP."""
 
     time_out: TerminationTermCfg = TerminationTermCfg(func=mdp_isaac_lab.time_out)
-
-    # Dependent on the openable object, so this is passed in from the task at
-    # construction time.
     success: TerminationTermCfg = MISSING
 
 

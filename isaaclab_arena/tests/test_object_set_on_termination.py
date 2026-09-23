@@ -38,8 +38,8 @@ def _test_object_set_on_destination_termination(simulation_app) -> bool:
 
     asset_registry = AssetRegistry()
     background = asset_registry.get_asset_by_name("kitchen_with_open_drawer")()
-    sweet_potato = asset_registry.get_asset_by_name("sweet_potato")()
-    jug = asset_registry.get_asset_by_name("jug")()
+    avocado = asset_registry.get_asset_by_name("avocado01_fruits_veggies_robolab")()
+    lemon = asset_registry.get_asset_by_name("lemon_01_fruits_veggies_robolab")()
 
     destination_location = ObjectReference(
         name="destination_location",
@@ -49,7 +49,7 @@ def _test_object_set_on_destination_termination(simulation_app) -> bool:
 
     object_set = RigidObjectSet(
         name="object_set",
-        objects=[sweet_potato, jug],
+        objects=[avocado, lemon],
     )
     object_set.set_initial_pose(
         Pose(

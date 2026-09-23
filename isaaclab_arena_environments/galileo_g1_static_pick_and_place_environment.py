@@ -174,6 +174,7 @@ class GalileoG1StaticPickAndPlaceEnvironment(ArenaEnvironmentFactory[GalileoG1St
     def build(self, cfg: GalileoG1StaticPickAndPlaceEnvironmentCfg) -> IsaacLabArenaEnvironment:
         """Build the environment from its typed configuration."""
         from isaaclab import sim as sim_utils
+        from isaaclab_physx.sim.schemas import PhysxCollisionPropertiesCfg
 
         from isaaclab_arena.assets.object import Object
         from isaaclab_arena.assets.object_base import ObjectType
@@ -197,7 +198,7 @@ class GalileoG1StaticPickAndPlaceEnvironment(ArenaEnvironmentFactory[GalileoG1St
             def __init__(self):
                 spawner_cfg = sim_utils.CuboidCfg(
                     size=SHELF_SUPPORT_PATCH_SIZE,
-                    collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005),
+                    collision_props=PhysxCollisionPropertiesCfg(contact_offset=0.005),
                     visible=False,
                 )
                 super().__init__(

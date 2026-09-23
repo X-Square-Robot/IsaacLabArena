@@ -8,12 +8,11 @@ from __future__ import annotations
 import torch
 from abc import ABC, abstractmethod
 
-import warp as wp
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
 from isaaclab.envs import ManagerBasedEnv
 from isaaclab.managers import EventTermCfg, SceneEntityCfg
 from isaaclab.sensors.contact_sensor.contact_sensor_cfg import ContactSensorCfg
-from isaaclab_tasks.manager_based.manipulation.stack.mdp.franka_stack_events import randomize_object_pose
+from isaaclab_tasks.contrib.stack.mdp.franka_stack_events import randomize_object_pose
 
 # Re-export ObjectType from the lightweight module so existing
 # `from isaaclab_arena.assets.object_base import ObjectType` consumers keep working,
@@ -27,9 +26,22 @@ from isaaclab_arena.utils.velocity import Velocity
 from isaaclab_arena.variations.object_mass_variation import ObjectMassVariation
 
 __all__ = [
+    "ASSET_ANCHOR_PREFIX",
     "ObjectBase",
     "ObjectType",
+    "asset_anchor_path",
 ]
+
+# Anchor prim prefix: without it, an internal prim named like the asset (e.g.
+# collision mesh ``basket_b``) yields ``{ENV}/basket_b/basket_b`` and the PhysX
+# contact-filter glob matches both, breaking the one-to-one sensor↔filter
+# contract. Always build anchor paths via :func:`asset_anchor_path`.
+ASSET_ANCHOR_PREFIX = "_"
+
+
+def asset_anchor_path(name: str) -> str:
+    """Return the ``{ENV_REGEX_NS}``-rooted anchor prim path for an asset name."""
+    return "{ENV_REGEX_NS}/" + ASSET_ANCHOR_PREFIX + name
 
 
 class ObjectBase(PlaceableAsset, ABC):
@@ -44,7 +56,7 @@ class ObjectBase(PlaceableAsset, ABC):
     ):
         super().__init__(name=name, **kwargs)
         if prim_path is None:
-            prim_path = "{ENV_REGEX_NS}/" + self.name
+            prim_path = asset_anchor_path(self.name)
         self.prim_path = prim_path
         self.object_type = object_type
         if self.object_type == ObjectType.RIGID:
@@ -133,6 +145,21 @@ class ObjectBase(PlaceableAsset, ABC):
         return self.name, self.object_cfg
 
     def get_event_cfg(self) -> tuple[str, EventTermCfg | None]:
+        # A pooled/materialized instance is renamed (e.g. ``bottle_a`` -> ``bottle_a_0``)
+        # after ``_build_reset_event`` froze the reset event's ``SceneEntityCfg`` with the
+        # pool-base name. The event is registered under the current name, so re-point its
+        # entity refs to ``self.name`` too — otherwise it resolves against the base name,
+        # which is not a scene entity, and env build fails.
+        if self._pose_event_cfg is not None:
+            for key in ("asset_cfg", "object_cfg"):
+                entity = self._pose_event_cfg.params.get(key)
+                if isinstance(entity, SceneEntityCfg):
+                    entity.name = self.name
+            entities = self._pose_event_cfg.params.get("asset_cfgs")
+            if isinstance(entities, list):
+                for entity in entities:
+                    if isinstance(entity, SceneEntityCfg):
+                        entity.name = self.name
         return self.name, self._pose_event_cfg
 
     def _init_object_cfg(self) -> RigidObjectCfg | ArticulationCfg | AssetBaseCfg:
@@ -160,7 +187,7 @@ class ObjectBase(PlaceableAsset, ABC):
         # We require that the asset has been added to the scene under its name.
         assert self.name in env.unwrapped.scene.keys(), f"Asset {self.name} not found in scene"
         if (self.object_type == ObjectType.RIGID) or (self.object_type == ObjectType.ARTICULATION):
-            object_pose = wp.to_torch(env.unwrapped.scene[self.name].data.root_pose_w).clone()
+            object_pose = (env.unwrapped.scene[self.name].data.root_pose_w).torch.clone()
         elif self.object_type == ObjectType.BASE:
             object_pose = torch.cat(env.unwrapped.scene[self.name].get_world_poses(), dim=-1)
         else:
@@ -186,9 +213,9 @@ class ObjectBase(PlaceableAsset, ABC):
         pose_t_xyz_q_xyzw = pose.to_tensor(device=env.unwrapped.device).repeat(num_envs, 1)
         pose_t_xyz_q_xyzw[:, :3] += env.unwrapped.scene.env_origins[env_ids]
         # Set the pose and velocity
-        asset.write_root_pose_to_sim(pose_t_xyz_q_xyzw, env_ids=env_ids)
-        asset.write_root_velocity_to_sim(
-            torch.zeros(env.unwrapped.num_envs, 6, device=env.unwrapped.device), env_ids=env_ids
+        asset.write_root_pose_to_sim_index(root_pose=pose_t_xyz_q_xyzw, env_ids=env_ids)
+        asset.write_root_velocity_to_sim_index(
+            root_velocity=torch.zeros(env.unwrapped.num_envs, 6, device=env.unwrapped.device), env_ids=env_ids
         )
 
     def get_contact_sensor_cfg(self, contact_against_object: ObjectBase | None = None) -> ContactSensorCfg:

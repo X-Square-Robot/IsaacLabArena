@@ -16,7 +16,6 @@ import torch
 import traceback
 
 import pytest
-import warp as wp
 
 from isaaclab_arena.tests.utils.persistent_simulation_app import run_function_with_persistent_simulation_app
 
@@ -183,9 +182,9 @@ def _test_apple_on_plate_succeeds(simulation_app) -> bool:
         _step_with_standing_actions(env, WARMUP_STEPS)
 
         plate_object: RigidObject = env.unwrapped.scene[plate.name]
-        plate_pos_world = wp.to_torch(plate_object.data.root_pos_w)[0]
+        plate_pos_world = (plate_object.data.root_pos_w).torch[0]
         env_origin = env.unwrapped.scene.env_origins[0]
-        # ``wp.to_torch`` may return a tensor on a different device than ``env_origins``
+        # ``.torch`` may return a tensor on a different device than ``env_origins``
         # (warp-managed vs torch-managed); explicitly align before subtracting.
         plate_pos_local = plate_pos_world.to(env_origin.device) - env_origin
         apple_target = (

@@ -6,8 +6,6 @@
 import torch
 import traceback
 
-import warp as wp
-
 from isaaclab_arena.tests.utils.persistent_simulation_app import run_function_with_persistent_simulation_app
 
 NUM_STEPS = 10
@@ -133,11 +131,11 @@ def _test_achieve_cube_goal_pose_success(simulation_app) -> bool:
             for _ in range(NUM_STEPS):
 
                 # Write the new pose to the simulation
-                cube_object.write_root_pose_to_sim(
+                cube_object.write_root_pose_to_sim_index(
                     root_pose=torch.cat([target_pos + env.scene.env_origins, target_quat], dim=-1)
                 )
                 # Also set velocity to zero to stabilize
-                cube_object.write_root_velocity_to_sim(root_velocity=torch.zeros((1, 6), device=env.device))
+                cube_object.write_root_velocity_to_sim_index(root_velocity=torch.zeros((1, 6), device=env.device))
 
                 actions = torch.zeros(env.action_space.shape, device=env.device)
                 _, _, terminated, _, info = env.step(actions)
@@ -178,7 +176,7 @@ def _test_achieve_cube_goal_pose_multiple_envs(simulation_app) -> bool:
             step_zeros_and_call(env, 1)
 
             # Move only the first env's cube to target pose
-            current_poses = wp.to_torch(cube_object.data.root_state_w).clone()
+            current_poses = (cube_object.data.root_state_w).torch.clone()
 
             # Set first env to success pose
             target_pos_0 = env.scene.env_origins[0] + torch.tensor([0.1, 0.0, 0.5], device=env.device)
@@ -191,7 +189,8 @@ def _test_achieve_cube_goal_pose_multiple_envs(simulation_app) -> bool:
 
             # Step and check
             for _ in range(NUM_STEPS):
-                cube_object.write_root_state_to_sim(new_poses)
+                cube_object.write_root_link_pose_to_sim_index(root_pose=new_poses[:, :7])
+                cube_object.write_root_com_velocity_to_sim_index(root_velocity=new_poses[:, 7:])
                 actions = torch.zeros(env.action_space.shape, device=env.device)
                 _, _, terminated, _, _ = env.step(actions)
 
@@ -200,7 +199,7 @@ def _test_achieve_cube_goal_pose_multiple_envs(simulation_app) -> bool:
             assert not terminated[1].item(), "Second env should not be successful"
 
             # Now move second env to success pose too
-            current_poses = wp.to_torch(cube_object.data.root_state_w).clone()
+            current_poses = (cube_object.data.root_state_w).torch.clone()
             target_pos_1 = env.scene.env_origins[1] + torch.tensor([0.1, 0.0, 0.5], device=env.device)
 
             new_poses = current_poses.clone()
@@ -213,7 +212,8 @@ def _test_achieve_cube_goal_pose_multiple_envs(simulation_app) -> bool:
 
             for _ in range(NUM_STEPS):
                 actions = torch.zeros(env.action_space.shape, device=env.device)
-                cube_object.write_root_state_to_sim(new_poses)
+                cube_object.write_root_link_pose_to_sim_index(root_pose=new_poses[:, :7])
+                cube_object.write_root_com_velocity_to_sim_index(root_velocity=new_poses[:, 7:])
                 _, _, terminated, _, _ = env.step(actions)
 
             print(f"Expected: [True, True], got: {terminated}")

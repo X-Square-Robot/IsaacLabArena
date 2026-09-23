@@ -188,7 +188,9 @@ def _test_peg_insert_assembly_single(simulation_app) -> bool:
 
         # Manually place hole on peg to simulate successful assembly - use absolute world coordinates
         peg_pose = peg.get_object_pose(env, is_relative=False)
-        env.scene[hole.name].write_root_pose_to_sim(peg_pose, env_ids=torch.tensor([0], device=env.device))
+        env.scene[hole.name].write_root_pose_to_sim_index(
+            root_pose=peg_pose, env_ids=torch.tensor([0], device=env.device)
+        )
 
         step_zeros_and_call(env, NUM_STEPS, assert_assembled)
 
@@ -230,7 +232,9 @@ def _test_gear_mesh_assembly_single(simulation_app) -> bool:
 
         # Manually place medium gear on gear base to simulate successful assembly - use absolute world coordinates
         base_pose = gear_base.get_object_pose(env, is_relative=False)
-        env.scene[medium_gear.name].write_root_pose_to_sim(base_pose, env_ids=torch.tensor([0], device=env.device))
+        env.scene[medium_gear.name].write_root_pose_to_sim_index(
+            root_pose=base_pose, env_ids=torch.tensor([0], device=env.device)
+        )
 
         step_zeros_and_call(env, NUM_STEPS, assert_assembled)
 
@@ -257,7 +261,7 @@ def _test_peg_insert_assembly_multi(simulation_app) -> bool:
 
             # Assemble in both environments - use absolute world coordinates
             peg_poses = peg.get_object_pose(env, is_relative=False)
-            env.scene[hole.name].write_root_pose_to_sim(peg_poses, env_ids=None)
+            env.scene[hole.name].write_root_pose_to_sim_index(root_pose=peg_poses, env_ids=None)
 
             step_zeros_and_call(env, NUM_STEPS)
 
@@ -293,7 +297,7 @@ def _test_gear_mesh_assembly_multi(simulation_app) -> bool:
 
             # Assemble in both environments - use absolute world coordinates
             base_poses = gear_base.get_object_pose(env, is_relative=False)
-            env.scene[medium_gear.name].write_root_pose_to_sim(base_poses, env_ids=None)
+            env.scene[medium_gear.name].write_root_pose_to_sim_index(root_pose=base_poses, env_ids=None)
 
             step_zeros_and_call(env, NUM_STEPS)
 
